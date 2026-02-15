@@ -105,6 +105,9 @@ drizzle/              # schema + generated migrations
 tests/                # unit/integration/component tests
 ```
 
+## Agent Skill
+- `SKILLS.md` provides an OpenClaw agent skill for provisioning tenant/instance email access and using the gateway inbox/send APIs.
+
 ## Local development
 1. Install dependencies:
 ```bash
