@@ -11,7 +11,6 @@ type CredentialFieldId =
 type CredentialFeedbackTone = "idle" | "validating" | "success" | "error";
 
 type CredentialFeedbackState = Record<CredentialFieldId, CredentialFeedbackTone>;
-type CredentialMessageState = Record<CredentialFieldId, string | null>;
 type CredentialPreviewOverrides = Partial<Record<CredentialFieldId, string | null>>;
 
 interface MailchannelsMutationInput {
@@ -21,18 +20,13 @@ interface MailchannelsMutationInput {
 }
 
 const VALIDATION_FEEDBACK_DURATION_MS = 1400;
+const VALIDATION_ERROR_FEEDBACK_DURATION_MS = VALIDATION_FEEDBACK_DURATION_MS * 3;
 const CREDENTIAL_PREVIEW_PREFIX_LENGTH = 6;
 
 const INITIAL_FEEDBACK_STATE: CredentialFeedbackState = {
   mailchannelsAccountId: "idle",
   mailchannelsParentApiKey: "idle",
   agentmailApiKey: "idle",
-};
-
-const INITIAL_CREDENTIAL_MESSAGES: CredentialMessageState = {
-  mailchannelsAccountId: null,
-  mailchannelsParentApiKey: null,
-  agentmailApiKey: null,
 };
 
 function updateCredentialFields<T>(
@@ -128,9 +122,6 @@ export function TenantsRoute() {
   const [credentialFeedback, setCredentialFeedback] = useState<CredentialFeedbackState>(
     INITIAL_FEEDBACK_STATE,
   );
-  const [credentialMessages, setCredentialMessages] = useState<CredentialMessageState>(
-    INITIAL_CREDENTIAL_MESSAGES,
-  );
   const [credentialPreviewOverrides, setCredentialPreviewOverrides] =
     useState<CredentialPreviewOverrides>({});
 
@@ -177,9 +168,6 @@ export function TenantsRoute() {
     onMutate: (input) => {
       const fields = getMailchannelsValidationFields(input);
       clearMailchannelsSettleTimeout();
-      setCredentialMessages((current) =>
-        updateCredentialFields(current, fields, null),
-      );
       setCredentialFeedback((current) =>
         updateCredentialFields(current, fields, "validating"),
       );
@@ -194,9 +182,6 @@ export function TenantsRoute() {
 
       setCredentialFeedback((current) =>
         updateCredentialFields(current, fields, "success"),
-      );
-      setCredentialMessages((current) =>
-        updateCredentialFields(current, fields, null),
       );
 
       setCredentialPreviewOverrides((current) => {
@@ -236,15 +221,12 @@ export function TenantsRoute() {
         mailchannelsSettleTimeoutRef.current = null;
       }, VALIDATION_FEEDBACK_DURATION_MS);
     },
-    onError: (error, input) => {
+    onError: (_, input) => {
       const fields = getMailchannelsValidationFields(input);
       clearMailchannelsSettleTimeout();
 
       setCredentialFeedback((current) =>
         updateCredentialFields(current, fields, "error"),
-      );
-      setCredentialMessages((current) =>
-        updateCredentialFields(current, fields, error.message),
       );
 
       mailchannelsSettleTimeoutRef.current = setTimeout(() => {
@@ -265,17 +247,13 @@ export function TenantsRoute() {
         }
 
         mailchannelsSettleTimeoutRef.current = null;
-      }, VALIDATION_FEEDBACK_DURATION_MS);
+      }, VALIDATION_ERROR_FEEDBACK_DURATION_MS);
     },
   });
 
   const connectAgentmail = trpc.tenants.connectAgentmail.useMutation({
     onMutate: () => {
       clearAgentmailSettleTimeout();
-      setCredentialMessages((current) => ({
-        ...current,
-        agentmailApiKey: null,
-      }));
       setCredentialFeedback((current) => ({
         ...current,
         agentmailApiKey: "validating",
@@ -290,10 +268,6 @@ export function TenantsRoute() {
       setCredentialFeedback((current) => ({
         ...current,
         agentmailApiKey: "success",
-      }));
-      setCredentialMessages((current) => ({
-        ...current,
-        agentmailApiKey: null,
       }));
 
       setCredentialPreviewOverrides((current) => ({
@@ -313,16 +287,12 @@ export function TenantsRoute() {
         agentmailSettleTimeoutRef.current = null;
       }, VALIDATION_FEEDBACK_DURATION_MS);
     },
-    onError: (error) => {
+    onError: () => {
       clearAgentmailSettleTimeout();
 
       setCredentialFeedback((current) => ({
         ...current,
         agentmailApiKey: "error",
-      }));
-      setCredentialMessages((current) => ({
-        ...current,
-        agentmailApiKey: error.message,
       }));
 
       agentmailSettleTimeoutRef.current = setTimeout(() => {
@@ -334,7 +304,7 @@ export function TenantsRoute() {
         setAgentmailApiKeyEditing(true);
         setAgentmailApiKeyForceEntry(true);
         agentmailSettleTimeoutRef.current = null;
-      }, VALIDATION_FEEDBACK_DURATION_MS);
+      }, VALIDATION_ERROR_FEEDBACK_DURATION_MS);
     },
   });
 
@@ -378,7 +348,6 @@ export function TenantsRoute() {
     setAgentmailApiKeyForceEntry(false);
 
     setCredentialFeedback(INITIAL_FEEDBACK_STATE);
-    setCredentialMessages(INITIAL_CREDENTIAL_MESSAGES);
     setCredentialPreviewOverrides({});
   }, [activeTenantId]);
 
@@ -470,10 +439,6 @@ export function TenantsRoute() {
       return;
     }
 
-    setCredentialMessages((current) => ({
-      ...current,
-      mailchannelsAccountId: null,
-    }));
     setMailchannelsAccountId("");
     setMailchannelsAccountIdEditing(true);
     setMailchannelsAccountIdForceEntry(false);
@@ -484,10 +449,6 @@ export function TenantsRoute() {
       return;
     }
 
-    setCredentialMessages((current) => ({
-      ...current,
-      mailchannelsParentApiKey: null,
-    }));
     setMailchannelsApiKey("");
     setMailchannelsApiKeyEditing(true);
     setMailchannelsApiKeyForceEntry(false);
@@ -498,10 +459,6 @@ export function TenantsRoute() {
       return;
     }
 
-    setCredentialMessages((current) => ({
-      ...current,
-      agentmailApiKey: null,
-    }));
     setAgentmailApiKey("");
     setAgentmailApiKeyEditing(true);
     setAgentmailApiKeyForceEntry(false);
@@ -671,10 +628,6 @@ export function TenantsRoute() {
                         : mailchannelsAccountId
                     }
                     onChange={(event) => {
-                      setCredentialMessages((current) => ({
-                        ...current,
-                        mailchannelsAccountId: null,
-                      }));
                       setMailchannelsAccountId(event.target.value);
                     }}
                     onClick={beginMailchannelsAccountIdEdit}
@@ -697,9 +650,6 @@ export function TenantsRoute() {
                 isMailchannelsAccountIdConfigured && (
                 <p className="hint-message">Enter a new MailChannels account id.</p>
               )}
-              {credentialMessages.mailchannelsAccountId && (
-                <p className="error-message">{credentialMessages.mailchannelsAccountId}</p>
-              )}
 
               <label>
                 Parent API key
@@ -720,10 +670,6 @@ export function TenantsRoute() {
                         : mailchannelsApiKey
                     }
                     onChange={(event) => {
-                      setCredentialMessages((current) => ({
-                        ...current,
-                        mailchannelsParentApiKey: null,
-                      }));
                       setMailchannelsApiKey(event.target.value);
                     }}
                     onClick={beginMailchannelsApiKeyEdit}
@@ -745,9 +691,6 @@ export function TenantsRoute() {
               {(mailchannelsApiKeyEditing || mailchannelsApiKeyForceEntry) &&
                 isMailchannelsParentApiKeyConfigured && (
                 <p className="hint-message">Enter a new MailChannels parent API key.</p>
-              )}
-              {credentialMessages.mailchannelsParentApiKey && (
-                <p className="error-message">{credentialMessages.mailchannelsParentApiKey}</p>
               )}
 
               <button
@@ -802,10 +745,6 @@ export function TenantsRoute() {
                         : agentmailApiKey
                     }
                     onChange={(event) => {
-                      setCredentialMessages((current) => ({
-                        ...current,
-                        agentmailApiKey: null,
-                      }));
                       setAgentmailApiKey(event.target.value);
                     }}
                     onClick={beginAgentmailApiKeyEdit}
@@ -827,9 +766,6 @@ export function TenantsRoute() {
               {(agentmailApiKeyEditing || agentmailApiKeyForceEntry) &&
                 isAgentmailApiKeyConfigured && (
                 <p className="hint-message">Enter a new AgentMail API key.</p>
-              )}
-              {credentialMessages.agentmailApiKey && (
-                <p className="error-message">{credentialMessages.agentmailApiKey}</p>
               )}
 
               <button

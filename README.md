@@ -135,6 +135,10 @@ tests/                # unit/integration/component tests
 ```
 
 ## Recent refactors
+- 2026-02-15: refined credential validation failure UX on `/tenants`:
+  - Removed rendering of raw provider error bodies from credential fields (prevents provider HTML/error payload leakage in UI).
+  - Kept failure feedback inline via `❌` input overlay only, without persistent `.error-message` blocks.
+  - Extended failed-validation inline feedback duration to 3x the success duration so rejection is easier to notice.
 - 2026-02-15: added credential validation-first UX for tenant provider connections:
   - Added provider credential validation hooks in `server/services/provider-credential-validation-service.ts` and enforced validation in `tenants.connectMailchannels` / `tenants.connectAgentmail`.
   - Validation now performs direct provider API calls before persistence:

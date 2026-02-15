@@ -279,6 +279,10 @@ describe("TenantsRoute", () => {
       "is-invalid",
     );
     expect(screen.getByText("❌")).toBeInTheDocument();
+    expect(screen.queryByText(mailchannelsErrorMessage)).not.toBeInTheDocument();
+
+    await advanceTimerAndFlush(2800);
+    expect(screen.getByText("❌")).toBeInTheDocument();
 
     await advanceTimerAndFlush(1400);
 
@@ -294,6 +298,5 @@ describe("TenantsRoute", () => {
     expect(
       screen.getByPlaceholderText("Enter a new MailChannels account id"),
     ).not.toHaveAttribute("readonly");
-    expect(screen.getByText(mailchannelsErrorMessage)).toBeInTheDocument();
   });
 });

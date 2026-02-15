@@ -724,10 +724,6 @@ label {
   margin-bottom: 0.8rem;
 }
 
-.error-message {
-  color: var(--danger);
-}
-
 .entity-list,
 .instance-list,
 .dns-list {
