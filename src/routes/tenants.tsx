@@ -81,6 +81,14 @@ function credentialFeedbackIcon(tone: CredentialFeedbackTone): string | null {
   return null;
 }
 
+function credentialRejectionMessage(fieldId: CredentialFieldId): string {
+  if (fieldId === "agentmailApiKey") {
+    return "Credential was rejected by AgentMail.";
+  }
+
+  return "Credential was rejected by MailChannels.";
+}
+
 function getCredentialInputClass(
   inputLocked: boolean,
   tone: CredentialFeedbackTone,
@@ -650,6 +658,11 @@ export function TenantsRoute() {
                 isMailchannelsAccountIdConfigured && (
                 <p className="hint-message">Enter a new MailChannels account id.</p>
               )}
+              {mailchannelsAccountIdTone === "error" && (
+                <p className="credential-feedback-text error">
+                  ❌ {credentialRejectionMessage("mailchannelsAccountId")}
+                </p>
+              )}
 
               <label>
                 Parent API key
@@ -691,6 +704,11 @@ export function TenantsRoute() {
               {(mailchannelsApiKeyEditing || mailchannelsApiKeyForceEntry) &&
                 isMailchannelsParentApiKeyConfigured && (
                 <p className="hint-message">Enter a new MailChannels parent API key.</p>
+              )}
+              {mailchannelsParentApiKeyTone === "error" && (
+                <p className="credential-feedback-text error">
+                  ❌ {credentialRejectionMessage("mailchannelsParentApiKey")}
+                </p>
               )}
 
               <button
@@ -766,6 +784,11 @@ export function TenantsRoute() {
               {(agentmailApiKeyEditing || agentmailApiKeyForceEntry) &&
                 isAgentmailApiKeyConfigured && (
                 <p className="hint-message">Enter a new AgentMail API key.</p>
+              )}
+              {agentmailApiKeyTone === "error" && (
+                <p className="credential-feedback-text error">
+                  ❌ {credentialRejectionMessage("agentmailApiKey")}
+                </p>
               )}
 
               <button

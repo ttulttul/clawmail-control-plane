@@ -82,6 +82,7 @@ describe("TenantsRoute", () => {
   let autoResolveMutations: boolean;
   const mailchannelsErrorMessage = "Unable to validate the MailChannels parent API key.";
   const agentmailErrorMessage = "Unable to validate the AgentMail API key.";
+  const mailchannelsRejectionText = "Credential was rejected by MailChannels.";
 
   const mailchannelsMutate = vi.fn();
   const agentmailMutate = vi.fn();
@@ -279,14 +280,19 @@ describe("TenantsRoute", () => {
       "is-invalid",
     );
     expect(screen.getByText("❌")).toBeInTheDocument();
+    expect(screen.getByText(`❌ ${mailchannelsRejectionText}`)).toBeInTheDocument();
     expect(screen.queryByText(mailchannelsErrorMessage)).not.toBeInTheDocument();
 
     await advanceTimerAndFlush(2800);
     expect(screen.getByText("❌")).toBeInTheDocument();
+    expect(screen.getByText(`❌ ${mailchannelsRejectionText}`)).toBeInTheDocument();
 
     await advanceTimerAndFlush(1400);
 
     expect(screen.queryByText("❌")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(`❌ ${mailchannelsRejectionText}`),
+    ).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText("Enter a new MailChannels account id")).toHaveValue("");
     expect(screen.getByPlaceholderText("Enter a new MailChannels account id")).toHaveAttribute(
       "placeholder",

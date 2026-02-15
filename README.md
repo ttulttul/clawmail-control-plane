@@ -135,6 +135,10 @@ tests/                # unit/integration/component tests
 ```
 
 ## Recent refactors
+- 2026-02-15: clarified inline credential rejection feedback on `/tenants`:
+  - Added explicit provider-specific rejection copy alongside the `❌` indicator (for example, “Credential was rejected by MailChannels.”).
+  - Kept provider error payloads hidden from the UI to avoid exposing raw HTML/error-body output.
+  - Continued using the extended failed-validation display window (3x success duration) before returning to editable state.
 - 2026-02-15: refined credential validation failure UX on `/tenants`:
   - Removed rendering of raw provider error bodies from credential fields (prevents provider HTML/error payload leakage in UI).
   - Kept failure feedback inline via `❌` input overlay only, without persistent `.error-message` blocks.
