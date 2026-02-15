@@ -4,6 +4,22 @@
 
 Self-hostable email control plane for OpenClaw fleets with tenant isolation, per-instance blast-radius controls, centralized webhook ingestion, and gateway-mode API access.
 
+## Core Concepts
+- `Tenant`: The top-level isolation boundary. Provider credentials, instances, policies, inboxes, logs, and audit events are all scoped to a tenant.
+- `User Membership`: A user belongs to one or more tenants with a role (`viewer`, `operator`, `admin`, `owner`) that controls what actions they can perform.
+- `Instance`: A logical OpenClaw agent identity inside a tenant. Instances have lifecycle state (`active`, `suspended`, `deprovisioned`) and mode (`gateway` or `direct`).
+- `Instance Policy`: Per-instance guardrails for outbound mail (recipient limits, required headers, allow/deny domain lists, rate limits, and daily caps).
+- `Gateway Token`: A rotatable, instance-scoped secret used by agents to call `/agent/*` endpoints. Only the token hash is stored server-side.
+- `Token Scope`: Permissions attached to a gateway token (for example `send`, `read_inbox`, or `*`) that gate agent capabilities.
+- `MailChannels Connection`: Tenant-level provider credentials used to provision and operate sub-accounts for outbound sending.
+- `MailChannels Sub-account`: Instance-level sending account created under a tenant’s MailChannels parent account, with its own limits and key lifecycle.
+- `AgentMail Connection`: Tenant-level API key used to provision mailbox resources for instances.
+- `AgentMail Pod`: A grouping/container in AgentMail where domains and inboxes are created.
+- `AgentMail Domain`: A domain attached to a pod for mailbox addressing, along with DNS verification records and status.
+- `AgentMail Inbox`: The mailbox mapped to an instance for reading/replying via gateway inbox endpoints.
+- `Webhook Event`: Provider delivery/inbox events ingested into the control plane, deduplicated, and attached to tenant/instance context when available.
+- `Audit Log`: An immutable operator action trail (for example provisioning, token rotation, policy changes) used for oversight and incident review.
+
 ## Why This Exists
 OpenClaw agents become high-risk the moment they can interact with email directly. They can send at machine speed, contact the wrong recipients, leak sensitive context, or continue operating after provider credentials are misconfigured or compromised. Inbound email is equally risky: agents can be manipulated by malicious or unexpected replies, and operators can lose visibility into what influenced agent behavior.
 
