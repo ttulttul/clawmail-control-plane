@@ -1,17 +1,20 @@
 import { z } from "zod";
 
-import { createRouter, protectedProcedure } from "../trpc.js";
+import {
+  createRouter,
+  tenantMemberProcedure,
+  tenantOperatorProcedure,
+} from "../trpc.js";
 import { recordAuditEvent } from "../services/audit-service.js";
 import {
   createAgentmailDomain,
   createAgentmailInboxForInstance,
   ensurePod,
   listDomainRecords,
-} from "../services/provider-service.js";
-import { requireTenantMembership } from "../services/tenant-service.js";
+} from "../services/agentmail-provisioning-service.js";
 
 export const agentmailRouter = createRouter({
-  ensurePod: protectedProcedure
+  ensurePod: tenantOperatorProcedure
     .input(
       z.object({
         tenantId: z.string().uuid(),
@@ -19,12 +22,6 @@ export const agentmailRouter = createRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-        minimumRole: "operator",
-      });
-
       const pod = await ensurePod(ctx.db, input);
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
@@ -38,7 +35,7 @@ export const agentmailRouter = createRouter({
       return pod;
     }),
 
-  createDomain: protectedProcedure
+  createDomain: tenantOperatorProcedure
     .input(
       z.object({
         tenantId: z.string().uuid(),
@@ -47,12 +44,6 @@ export const agentmailRouter = createRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-        minimumRole: "operator",
-      });
-
       const domain = await createAgentmailDomain(ctx.db, input);
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
@@ -66,7 +57,7 @@ export const agentmailRouter = createRouter({
       return domain;
     }),
 
-  createInbox: protectedProcedure
+  createInbox: tenantOperatorProcedure
     .input(
       z.object({
         tenantId: z.string().uuid(),
@@ -76,12 +67,6 @@ export const agentmailRouter = createRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-        minimumRole: "operator",
-      });
-
       const inbox = await createAgentmailInboxForInstance(ctx.db, input);
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
@@ -95,18 +80,11 @@ export const agentmailRouter = createRouter({
       return inbox;
     }),
 
-  listDomains: protectedProcedure
+  listDomains: tenantMemberProcedure
     .input(
       z.object({
         tenantId: z.string().uuid(),
       }),
     )
-    .query(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-      });
-
-      return listDomainRecords(ctx.db, input.tenantId);
-    }),
+    .query(async ({ ctx, input }) => listDomainRecords(ctx.db, input.tenantId)),
 });

@@ -37,6 +37,11 @@ export function DashboardRoute() {
     { enabled: Boolean(activeTenantId) },
   );
 
+  const isLoading = sends.isLoading || events.isLoading || audit.isLoading;
+  const queryErrors = [sends.error?.message, events.error?.message, audit.error?.message].filter(
+    (value): value is string => Boolean(value),
+  );
+
   if (!activeTenantId) {
     return (
       <section className="panel">
@@ -60,7 +65,37 @@ export function DashboardRoute() {
         <p className="muted-copy">
           Monitor deliverability, webhook traffic, and tenant-level operations.
         </p>
+        <div className="button-row">
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={() => {
+              void sends.refetch();
+              void events.refetch();
+              void audit.refetch();
+            }}
+            disabled={isLoading}
+          >
+            {isLoading ? "Refreshing..." : "Refresh Data"}
+          </button>
+        </div>
       </header>
+
+      {isLoading && (
+        <p className="status-pill info" role="status" aria-live="polite">
+          Refreshing dashboard metrics...
+        </p>
+      )}
+      {queryErrors.length > 0 && (
+        <div className="status-banner error" role="alert">
+          <p>Some dashboard data could not be loaded.</p>
+          <ul className="error-list">
+            {queryErrors.map((message) => (
+              <li key={message}>{message}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="summary-grid">
         <article className="summary-card">

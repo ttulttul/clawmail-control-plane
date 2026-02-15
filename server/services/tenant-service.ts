@@ -13,6 +13,7 @@ const roleRank = {
 } as const;
 
 type Role = keyof typeof roleRank;
+export type TenantRole = Role;
 
 export async function createTenantForUser(
   db: DatabaseClient,

@@ -8,6 +8,7 @@ import {
 } from "../../drizzle/schema.js";
 import type { DatabaseClient } from "../lib/db.js";
 import { createId } from "../lib/id.js";
+import { parseStringArray, safeJsonStringify } from "../lib/json-codec.js";
 import { generateOpaqueToken, hashToken } from "../lib/token.js";
 
 export interface CreateInstanceInput {
@@ -42,9 +43,12 @@ export async function createInstance(
         maxRecipientsPerMessage: 10,
         perMinuteLimit: 30,
         dailyCap: 500,
-        requiredHeadersJson: JSON.stringify(["X-AI-Bot", "List-Unsubscribe"]),
-        allowListJson: JSON.stringify([]),
-        denyListJson: JSON.stringify([]),
+        requiredHeadersJson: safeJsonStringify(
+          ["X-AI-Bot", "List-Unsubscribe"],
+          "[]",
+        ),
+        allowListJson: safeJsonStringify([], "[]"),
+        denyListJson: safeJsonStringify([], "[]"),
       })
       .run();
   });
@@ -146,9 +150,9 @@ export async function setInstancePolicy(
       maxRecipientsPerMessage: input.policy.maxRecipientsPerMessage,
       perMinuteLimit: input.policy.perMinuteLimit,
       dailyCap: input.policy.dailyCap,
-      requiredHeadersJson: JSON.stringify(input.policy.requiredHeaders),
-      allowListJson: JSON.stringify(input.policy.allowList),
-      denyListJson: JSON.stringify(input.policy.denyList),
+      requiredHeadersJson: safeJsonStringify(input.policy.requiredHeaders, "[]"),
+      allowListJson: safeJsonStringify(input.policy.allowList, "[]"),
+      denyListJson: safeJsonStringify(input.policy.denyList, "[]"),
     });
 
     return;
@@ -160,21 +164,12 @@ export async function setInstancePolicy(
       maxRecipientsPerMessage: input.policy.maxRecipientsPerMessage,
       perMinuteLimit: input.policy.perMinuteLimit,
       dailyCap: input.policy.dailyCap,
-      requiredHeadersJson: JSON.stringify(input.policy.requiredHeaders),
-      allowListJson: JSON.stringify(input.policy.allowList),
-      denyListJson: JSON.stringify(input.policy.denyList),
+      requiredHeadersJson: safeJsonStringify(input.policy.requiredHeaders, "[]"),
+      allowListJson: safeJsonStringify(input.policy.allowList, "[]"),
+      denyListJson: safeJsonStringify(input.policy.denyList, "[]"),
       updatedAt: Date.now(),
     })
     .where(eq(instancePolicies.instanceId, input.instanceId));
-}
-
-function parseStringList(jsonValue: string): string[] {
-  const parsed: unknown = JSON.parse(jsonValue);
-  if (!Array.isArray(parsed)) {
-    return [];
-  }
-
-  return parsed.filter((value): value is string => typeof value === "string");
 }
 
 export async function getPolicyForInstance(
@@ -197,9 +192,9 @@ export async function getPolicyForInstance(
     maxRecipientsPerMessage: policy.maxRecipientsPerMessage,
     perMinuteLimit: policy.perMinuteLimit,
     dailyCap: policy.dailyCap,
-    requiredHeaders: parseStringList(policy.requiredHeadersJson),
-    allowList: parseStringList(policy.allowListJson),
-    denyList: parseStringList(policy.denyListJson),
+    requiredHeaders: parseStringArray(policy.requiredHeadersJson),
+    allowList: parseStringArray(policy.allowListJson),
+    denyList: parseStringArray(policy.denyListJson),
   };
 }
 
@@ -237,7 +232,7 @@ export async function rotateInstanceToken(
         id: tokenId,
         instanceId: input.instanceId,
         tokenHash: hashToken(token),
-        scopesJson: JSON.stringify(input.scopes),
+        scopesJson: safeJsonStringify(input.scopes, "[]"),
         expiresAt: input.expiresAt,
         rotatedFrom: activeToken?.id ?? null,
         revokedAt: null,
@@ -268,10 +263,7 @@ export async function authenticateInstanceToken(
     return null;
   }
 
-  const rawScopes: unknown = JSON.parse(row.scopesJson);
-  const scopes = Array.isArray(rawScopes)
-    ? rawScopes.filter((scope): scope is string => typeof scope === "string")
-    : [];
+  const scopes = parseStringArray(row.scopesJson);
 
   return {
     instanceId: row.instanceId,

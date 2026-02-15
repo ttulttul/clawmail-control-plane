@@ -32,6 +32,14 @@ This project exists to put a strict control plane between agents and email provi
 - Auth: Lucia session auth + optional Google/GitHub OAuth
 - Tests: Vitest + Testing Library
 
+## UX Standards
+The operator UI follows Nielsen heuristics and *The Design of Everyday Things* principles:
+- Visibility of system status: async actions show loading, success, and failure states.
+- Error prevention and recovery: destructive actions are confirmed; errors include retry paths.
+- Recognition over recall: forms include inline guidance and disable invalid actions early.
+- User control: users can clear inputs, dismiss status states, and retry failed queries.
+- Accessibility: focusable controls, semantic labels, and high-contrast status indicators.
+
 ## Quick Start
 ### Core concepts
 - `Tenant`: security and billing boundary for a team/workspace.
@@ -125,6 +133,38 @@ server/               # Hono + tRPC backend
 drizzle/              # schema + generated migrations
 tests/                # unit/integration/component tests
 ```
+
+## Recent refactors
+- 2026-02-15: split provider orchestration into focused services:
+  - `server/services/provider-connections-service.ts`
+  - `server/services/mailchannels-provisioning-service.ts`
+  - `server/services/agentmail-provisioning-service.ts`
+  - `server/services/provider-credentials-service.ts`
+  - `server/services/provider-service.ts` now acts as a compatibility barrel
+  - Added integration coverage in `tests/provider-services-refactor.test.ts`
+- 2026-02-15: introduced typed JSON codecs for serialized DB columns:
+  - Added `server/lib/json-codec.ts` with `parseStringArray`, `parseRecord`, `safeJson`, and `safeJsonStringify`
+  - Updated policy, token, send-log, audit-log, and domain record serialization/deserialization paths
+  - Added unit coverage in `tests/json-codec.test.ts`
+- 2026-02-15: consolidated tenant and instance authorization checks into reusable tRPC procedures:
+  - Added `tenantMemberProcedure`, `tenantOperatorProcedure`, `tenantAdminProcedure`, `instanceScopedProcedure`, and `instanceOperatorProcedure` in `server/trpc.ts`
+  - Migrated tenant-scoped routers to composable wrappers and removed repeated inline auth checks
+  - Added integration coverage in `tests/trpc-authorization-procedures.test.ts`
+- 2026-02-15: formalized provider connector error mapping:
+  - Added `server/connectors/provider-error.ts` and `server/services/provider-error-mapper.ts`
+  - Mapped provider HTTP responses to typed `TRPCError` codes at connector call boundaries
+  - Added unit coverage in `tests/provider-error-mapper.test.ts`
+- 2026-02-15: split the instances route into focused UI components:
+  - Added `InstanceCreateForm`, `InstanceList`, `InstanceActions`, and `GatewayTokenPanel` under `src/components/instances/`
+  - Simplified `src/routes/instances.tsx` to orchestration-only logic
+  - Added component coverage in `tests/instance-actions.test.tsx`
+- 2026-02-15: moved scheduler behavior into per-job handlers:
+  - Added typed handler modules under `server/jobs/handlers/` and a job handler registry
+  - Kept `server/jobs/scheduler.ts` focused on queue orchestration and dispatch
+  - Added integration coverage in `tests/job-handlers.test.ts`
+- 2026-02-15: added gateway policy enforcement integration coverage:
+  - Added `tests/gateway-policy-enforcement.test.ts`
+  - Covers required-header enforcement, per-minute limits, daily caps, and allow/deny domain matching
 
 ## Agent Skill
 - `SKILLS.md` provides an OpenClaw agent skill for provisioning tenant/instance email access and using the gateway inbox/send APIs.

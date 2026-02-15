@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-import { createRouter, protectedProcedure } from "../trpc.js";
+import {
+  createRouter,
+  tenantAdminProcedure,
+  tenantMemberProcedure,
+  tenantOperatorProcedure,
+} from "../trpc.js";
 import { recordAuditEvent } from "../services/audit-service.js";
 import {
   activateSubaccount,
@@ -11,8 +16,7 @@ import {
   suspendSubaccount,
   syncSubaccountUsage,
   validateMailchannelsWebhook,
-} from "../services/provider-service.js";
-import { requireTenantMembership } from "../services/tenant-service.js";
+} from "../services/mailchannels-provisioning-service.js";
 
 const tenantInstanceSchema = z.object({
   tenantId: z.string().uuid(),
@@ -20,7 +24,7 @@ const tenantInstanceSchema = z.object({
 });
 
 export const mailchannelsRouter = createRouter({
-  provisionSubaccount: protectedProcedure
+  provisionSubaccount: tenantOperatorProcedure
     .input(
       tenantInstanceSchema.extend({
         limit: z.number().int().min(-1).default(1000),
@@ -29,12 +33,6 @@ export const mailchannelsRouter = createRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-        minimumRole: "operator",
-      });
-
       const provisioned = await provisionMailchannelsSubaccount(ctx.db, input);
 
       await recordAuditEvent(ctx.db, {
@@ -53,15 +51,9 @@ export const mailchannelsRouter = createRouter({
       return provisioned;
     }),
 
-  suspendSubaccount: protectedProcedure
+  suspendSubaccount: tenantOperatorProcedure
     .input(tenantInstanceSchema)
     .mutation(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-        minimumRole: "operator",
-      });
-
       await suspendSubaccount(ctx.db, input);
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
@@ -75,15 +67,9 @@ export const mailchannelsRouter = createRouter({
       return { success: true };
     }),
 
-  activateSubaccount: protectedProcedure
+  activateSubaccount: tenantOperatorProcedure
     .input(tenantInstanceSchema)
     .mutation(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-        minimumRole: "operator",
-      });
-
       await activateSubaccount(ctx.db, input);
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
@@ -97,19 +83,13 @@ export const mailchannelsRouter = createRouter({
       return { success: true };
     }),
 
-  setLimit: protectedProcedure
+  setLimit: tenantOperatorProcedure
     .input(
       tenantInstanceSchema.extend({
         limit: z.number().int().min(-1),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-        minimumRole: "operator",
-      });
-
       await setSubaccountLimit(ctx.db, input);
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
@@ -123,15 +103,9 @@ export const mailchannelsRouter = createRouter({
       return { success: true };
     }),
 
-  deleteLimit: protectedProcedure
+  deleteLimit: tenantOperatorProcedure
     .input(tenantInstanceSchema)
     .mutation(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-        minimumRole: "operator",
-      });
-
       await deleteSubaccountLimit(ctx.db, input);
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
@@ -145,19 +119,13 @@ export const mailchannelsRouter = createRouter({
       return { success: true };
     }),
 
-  rotateSubaccountKey: protectedProcedure
+  rotateSubaccountKey: tenantOperatorProcedure
     .input(
       tenantInstanceSchema.extend({
         persistDirectKey: z.boolean().default(false),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-        minimumRole: "operator",
-      });
-
       const rotated = await rotateSubaccountKey(ctx.db, input);
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
@@ -171,30 +139,17 @@ export const mailchannelsRouter = createRouter({
       return rotated;
     }),
 
-  syncUsage: protectedProcedure
+  syncUsage: tenantMemberProcedure
     .input(tenantInstanceSchema)
-    .mutation(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-      });
+    .mutation(async ({ ctx, input }) => syncSubaccountUsage(ctx.db, input)),
 
-      return syncSubaccountUsage(ctx.db, input);
-    }),
-
-  validateWebhook: protectedProcedure
+  validateWebhook: tenantAdminProcedure
     .input(
       z.object({
         tenantId: z.string().uuid(),
       }),
     )
-    .mutation(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-        minimumRole: "admin",
-      });
-
-      return validateMailchannelsWebhook(ctx.db, input.tenantId);
-    }),
+    .mutation(async ({ ctx, input }) =>
+      validateMailchannelsWebhook(ctx.db, input.tenantId),
+    ),
 });

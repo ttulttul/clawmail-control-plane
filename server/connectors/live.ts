@@ -7,10 +7,21 @@ import type {
   MailchannelsApiKey,
   MailchannelsSendResponse,
 } from "./types.js";
+import { ProviderHttpError, type ProviderName } from "./provider-error.js";
 
-function ensureOk(response: Response, body: string): void {
+function ensureOk(
+  provider: ProviderName,
+  path: string,
+  response: Response,
+  body: string,
+): void {
   if (!response.ok) {
-    throw new Error(`Provider request failed (${response.status}): ${body}`);
+    throw new ProviderHttpError({
+      provider,
+      status: response.status,
+      path,
+      body,
+    });
   }
 }
 
@@ -32,7 +43,7 @@ export class LiveMailChannelsConnector implements MailChannelsConnector {
     });
 
     const text = await response.text();
-    ensureOk(response, text);
+    ensureOk("mailchannels", path, response, text);
 
     if (!text) {
       return {} as T;
@@ -210,7 +221,7 @@ export class LiveAgentMailConnector implements AgentMailConnector {
     });
 
     const text = await response.text();
-    ensureOk(response, text);
+    ensureOk("agentmail", path, response, text);
 
     if (!text) {
       return {} as T;

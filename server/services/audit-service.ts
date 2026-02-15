@@ -1,6 +1,7 @@
 import { auditLog } from "../../drizzle/schema.js";
 import type { DatabaseClient } from "../lib/db.js";
 import { createId } from "../lib/id.js";
+import { safeJsonStringify } from "../lib/json-codec.js";
 
 export interface AuditEntry {
   actorUserId: string | null;
@@ -22,6 +23,6 @@ export async function recordAuditEvent(
     action: entry.action,
     targetType: entry.targetType,
     targetId: entry.targetId,
-    diffJson: JSON.stringify(entry.diff),
+    diffJson: safeJsonStringify(entry.diff, "{}"),
   });
 }
