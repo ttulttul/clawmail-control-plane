@@ -74,10 +74,6 @@ function credentialFeedbackIcon(tone: CredentialFeedbackTone): string | null {
     return "✅";
   }
 
-  if (tone === "error") {
-    return "❌";
-  }
-
   return null;
 }
 
@@ -108,7 +104,7 @@ function getCredentialInputClass(
   }
 
   if (tone === "error") {
-    classNames.push("is-invalid", "has-feedback-icon");
+    classNames.push("is-invalid");
   }
 
   return classNames.join(" ");
@@ -631,9 +627,11 @@ export function TenantsRoute() {
                       mailchannelsAccountIdTone,
                     )}
                     value={
-                      isMailchannelsAccountIdLocked
-                        ? (mailchannelsAccountIdPreview ?? "")
-                        : mailchannelsAccountId
+                      mailchannelsAccountIdTone === "error"
+                        ? `❌ ${credentialRejectionMessage("mailchannelsAccountId")}`
+                        : isMailchannelsAccountIdLocked
+                          ? (mailchannelsAccountIdPreview ?? "")
+                          : mailchannelsAccountId
                     }
                     onChange={(event) => {
                       setMailchannelsAccountId(event.target.value);
@@ -658,11 +656,6 @@ export function TenantsRoute() {
                 isMailchannelsAccountIdConfigured && (
                 <p className="hint-message">Enter a new MailChannels account id.</p>
               )}
-              {mailchannelsAccountIdTone === "error" && (
-                <p className="credential-feedback-text error">
-                  ❌ {credentialRejectionMessage("mailchannelsAccountId")}
-                </p>
-              )}
 
               <label>
                 Parent API key
@@ -678,9 +671,11 @@ export function TenantsRoute() {
                       mailchannelsParentApiKeyTone,
                     )}
                     value={
-                      isMailchannelsParentApiKeyLocked
-                        ? (mailchannelsParentApiKeyPreview ?? "")
-                        : mailchannelsApiKey
+                      mailchannelsParentApiKeyTone === "error"
+                        ? `❌ ${credentialRejectionMessage("mailchannelsParentApiKey")}`
+                        : isMailchannelsParentApiKeyLocked
+                          ? (mailchannelsParentApiKeyPreview ?? "")
+                          : mailchannelsApiKey
                     }
                     onChange={(event) => {
                       setMailchannelsApiKey(event.target.value);
@@ -704,11 +699,6 @@ export function TenantsRoute() {
               {(mailchannelsApiKeyEditing || mailchannelsApiKeyForceEntry) &&
                 isMailchannelsParentApiKeyConfigured && (
                 <p className="hint-message">Enter a new MailChannels parent API key.</p>
-              )}
-              {mailchannelsParentApiKeyTone === "error" && (
-                <p className="credential-feedback-text error">
-                  ❌ {credentialRejectionMessage("mailchannelsParentApiKey")}
-                </p>
               )}
 
               <button
@@ -758,9 +748,11 @@ export function TenantsRoute() {
                       agentmailApiKeyTone,
                     )}
                     value={
-                      isAgentmailApiKeyLocked
-                        ? (agentmailApiKeyPreview ?? "")
-                        : agentmailApiKey
+                      agentmailApiKeyTone === "error"
+                        ? `❌ ${credentialRejectionMessage("agentmailApiKey")}`
+                        : isAgentmailApiKeyLocked
+                          ? (agentmailApiKeyPreview ?? "")
+                          : agentmailApiKey
                     }
                     onChange={(event) => {
                       setAgentmailApiKey(event.target.value);
@@ -784,11 +776,6 @@ export function TenantsRoute() {
               {(agentmailApiKeyEditing || agentmailApiKeyForceEntry) &&
                 isAgentmailApiKeyConfigured && (
                 <p className="hint-message">Enter a new AgentMail API key.</p>
-              )}
-              {agentmailApiKeyTone === "error" && (
-                <p className="credential-feedback-text error">
-                  ❌ {credentialRejectionMessage("agentmailApiKey")}
-                </p>
               )}
 
               <button

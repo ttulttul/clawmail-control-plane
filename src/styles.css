@@ -710,16 +710,6 @@ label {
   pointer-events: none;
 }
 
-.credential-feedback-text {
-  margin: 0;
-  font-size: 0.88rem;
-}
-
-.credential-feedback-text.error {
-  color: #8f3342;
-  font-weight: 600;
-}
-
 @keyframes credential-shimmer {
   from {
     background-position: 200% 0;

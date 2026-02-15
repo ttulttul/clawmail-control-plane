@@ -279,19 +279,20 @@ describe("TenantsRoute", () => {
     expect(screen.getByPlaceholderText("Enter a new MailChannels account id")).toHaveClass(
       "is-invalid",
     );
-    expect(screen.getByText("❌")).toBeInTheDocument();
-    expect(screen.getByText(`❌ ${mailchannelsRejectionText}`)).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue(`❌ ${mailchannelsRejectionText}`),
+    ).toBeInTheDocument();
     expect(screen.queryByText(mailchannelsErrorMessage)).not.toBeInTheDocument();
 
     await advanceTimerAndFlush(2800);
-    expect(screen.getByText("❌")).toBeInTheDocument();
-    expect(screen.getByText(`❌ ${mailchannelsRejectionText}`)).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue(`❌ ${mailchannelsRejectionText}`),
+    ).toBeInTheDocument();
 
     await advanceTimerAndFlush(1400);
 
-    expect(screen.queryByText("❌")).not.toBeInTheDocument();
     expect(
-      screen.queryByText(`❌ ${mailchannelsRejectionText}`),
+      screen.queryByDisplayValue(`❌ ${mailchannelsRejectionText}`),
     ).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText("Enter a new MailChannels account id")).toHaveValue("");
     expect(screen.getByPlaceholderText("Enter a new MailChannels account id")).toHaveAttribute(

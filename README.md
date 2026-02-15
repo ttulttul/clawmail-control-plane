@@ -135,6 +135,9 @@ tests/                # unit/integration/component tests
 ```
 
 ## Recent refactors
+- 2026-02-15: moved credential rejection copy into the rejected input field:
+  - During failed provider validation, the affected input now displays inline text such as `❌ Credential was rejected by MailChannels.` inside the input itself.
+  - Removed separate rejection text rows below inputs to keep feedback scoped to the exact rejected credential field.
 - 2026-02-15: clarified inline credential rejection feedback on `/tenants`:
   - Added explicit provider-specific rejection copy alongside the `❌` indicator (for example, “Credential was rejected by MailChannels.”).
   - Kept provider error payloads hidden from the UI to avoid exposing raw HTML/error-body output.
