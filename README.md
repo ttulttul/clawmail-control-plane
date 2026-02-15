@@ -11,6 +11,55 @@ Self-hostable email control plane for OpenClaw fleets with tenant isolation, per
 - Auth: Lucia session auth
 - Tests: Vitest + Testing Library
 
+## Quick Start
+### Core concepts
+- `Tenant`: security and billing boundary for a team/workspace.
+- `Instance`: operational unit inside a tenant (holds provider links, policy state, and agent tokens).
+- `Provider connections`: tenant-level credentials for MailChannels and AgentMail.
+- `Gateway token`: per-instance token your agents use with `/agent/*` endpoints.
+
+### Run the app
+1. Install and start:
+```bash
+pnpm install
+pnpm approve-builds
+pnpm run dev
+```
+2. Open the UI at `http://localhost:5173`.
+
+### Create your first user and tenant
+1. On the login screen, use **Register** with:
+   - Email
+   - Password (12+ characters)
+   - Tenant name
+2. After registration, open **Tenants** and confirm your tenant exists.
+
+### Connect providers and create an instance
+1. In **Tenants**, save MailChannels and/or AgentMail credentials.
+   - For local smoke tests, default `CONNECTOR_MODE=mock` works without live credentials.
+2. Open **Instances**, create a new instance, then click **Rotate Gateway Token**.
+3. Copy the one-time token shown in the UI.
+
+### Let an agent use the control plane
+Use the gateway token as `Authorization: Bearer <token>` against `/agent/*`:
+
+```bash
+curl -X POST http://localhost:3000/agent/send \\
+  -H "Authorization: Bearer <gateway-token>" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "from": "agent@example.com",
+    "to": ["ops@example.com"],
+    "subject": "hello from agent",
+    "textBody": "status: green"
+  }'
+```
+
+```bash
+curl "http://localhost:3000/agent/events?limit=20" \\
+  -H "Authorization: Bearer <gateway-token>"
+```
+
 ## Implemented MVP capabilities
 - Tenant/user auth flows (`auth.*`)
 - Tenant management and provider connection storage (`tenants.*`)

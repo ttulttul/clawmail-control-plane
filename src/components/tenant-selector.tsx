@@ -36,12 +36,17 @@ export function TenantSelector(props: {
       <select
         value={activeTenantId ?? ""}
         onChange={(event) => setActiveTenantId(event.target.value || null)}
+        disabled={!tenants || tenants.length === 0}
       >
-        {tenants?.map((tenant) => (
-          <option key={tenant.id} value={tenant.id}>
-            {tenant.name}
-          </option>
-        ))}
+        {!tenants || tenants.length === 0 ? (
+          <option value="">No tenants yet</option>
+        ) : (
+          tenants.map((tenant) => (
+            <option key={tenant.id} value={tenant.id}>
+              {tenant.name}
+            </option>
+          ))
+        )}
       </select>
     </label>
   );
