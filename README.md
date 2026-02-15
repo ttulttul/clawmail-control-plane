@@ -4,12 +4,82 @@
 
 Self-hostable email control plane for OpenClaw fleets with tenant isolation, per-instance blast-radius controls, centralized webhook ingestion, and gateway-mode API access.
 
+## Core Concepts
+- `Tenant`: The top-level isolation boundary. Provider credentials, instances, policies, inboxes, logs, and audit events are all scoped to a tenant.
+- `User Membership`: A user belongs to one or more tenants with a role (`viewer`, `operator`, `admin`, `owner`) that controls what actions they can perform.
+- `Instance`: A logical OpenClaw agent identity inside a tenant. Instances have lifecycle state (`active`, `suspended`, `deprovisioned`) and mode (`gateway` or `direct`).
+- `Instance Policy`: Per-instance guardrails for outbound mail (recipient limits, required headers, allow/deny domain lists, rate limits, and daily caps).
+- `Gateway Token`: A rotatable, instance-scoped secret used by agents to call `/agent/*` endpoints. Only the token hash is stored server-side.
+- `Token Scope`: Permissions attached to a gateway token (for example `send`, `read_inbox`, or `*`) that gate agent capabilities.
+- `MailChannels Connection`: Tenant-level provider credentials used to provision and operate sub-accounts for outbound sending.
+- `MailChannels Sub-account`: Instance-level sending account created under a tenant’s MailChannels parent account, with its own limits and key lifecycle.
+- `AgentMail Connection`: Tenant-level API key used to provision mailbox resources for instances.
+- `AgentMail Pod`: A grouping/container in AgentMail where domains and inboxes are created.
+- `AgentMail Domain`: A domain attached to a pod for mailbox addressing, along with DNS verification records and status.
+- `AgentMail Inbox`: The mailbox mapped to an instance for reading/replying via gateway inbox endpoints.
+- `Webhook Event`: Provider delivery/inbox events ingested into the control plane, deduplicated, and attached to tenant/instance context when available.
+- `Audit Log`: An immutable operator action trail (for example provisioning, token rotation, policy changes) used for oversight and incident review.
+
+## Why This Exists
+OpenClaw agents become high-risk the moment they can interact with email directly. They can send at machine speed, contact the wrong recipients, leak sensitive context, or continue operating after provider credentials are misconfigured or compromised. Inbound email is equally risky: agents can be manipulated by malicious or unexpected replies, and operators can lose visibility into what influenced agent behavior.
+
+This project exists to put a strict control plane between agents and email providers. Instead of handing raw provider keys to agents, operators provision tenant-scoped providers, instance-scoped credentials, and short-lived scoped gateway tokens. Every send and webhook event is captured, policy-checked, and auditable. The result is practical oversight: agents can still use email, but within enforced limits and with clear operational accountability.
+
 ## Stack
 - Frontend: Vite + React + TanStack Router
 - Backend: Hono + tRPC
 - Database: SQLite + Drizzle ORM + generated SQL migrations
 - Auth: Lucia session auth + optional Google/GitHub OAuth
 - Tests: Vitest + Testing Library
+
+## Quick Start
+### Core concepts
+- `Tenant`: security and billing boundary for a team/workspace.
+- `Instance`: operational unit inside a tenant (holds provider links, policy state, and agent tokens).
+- `Provider connections`: tenant-level credentials for MailChannels and AgentMail.
+- `Gateway token`: per-instance token your agents use with `/agent/*` endpoints.
+
+### Run the app
+1. Install and start:
+```bash
+pnpm install
+pnpm approve-builds
+pnpm run dev
+```
+2. Open the UI at `http://localhost:5173`.
+
+### Create your first user and tenant
+1. On the login screen, use **Register** with:
+   - Email
+   - Password (12+ characters)
+   - Tenant name
+2. After registration, open **Tenants** and confirm your tenant exists.
+
+### Connect providers and create an instance
+1. In **Tenants**, save MailChannels and/or AgentMail credentials.
+   - For local smoke tests, default `CONNECTOR_MODE=mock` works without live credentials.
+2. Open **Instances**, create a new instance, then click **Rotate Gateway Token**.
+3. Copy the one-time token shown in the UI.
+
+### Let an agent use the control plane
+Use the gateway token as `Authorization: Bearer <token>` against `/agent/*`:
+
+```bash
+curl -X POST http://localhost:3000/agent/send \\
+  -H "Authorization: Bearer <gateway-token>" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "from": "agent@example.com",
+    "to": ["ops@example.com"],
+    "subject": "hello from agent",
+    "textBody": "status: green"
+  }'
+```
+
+```bash
+curl "http://localhost:3000/agent/events?limit=20" \\
+  -H "Authorization: Bearer <gateway-token>"
+```
 
 ## Implemented MVP capabilities
 - Tenant/user auth flows (`auth.*`)
@@ -55,6 +125,9 @@ server/               # Hono + tRPC backend
 drizzle/              # schema + generated migrations
 tests/                # unit/integration/component tests
 ```
+
+## Agent Skill
+- `SKILLS.md` provides an OpenClaw agent skill for provisioning tenant/instance email access and using the gateway inbox/send APIs.
 
 ## Local development
 1. Install dependencies:
