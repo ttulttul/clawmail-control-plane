@@ -3,31 +3,27 @@
 Generated: 2026-02-15
 
 ## Current Backlog
-1. [ ] Split tenant provider credential UI into focused components.
-- Why: `src/routes/tenants.tsx` now mixes tenant CRUD, provider edit-state machines, validation feedback timing, and mutation orchestration in one large file.
-- Proposed change: Extract `ProviderCredentialField`, `MailChannelsConnectionPanel`, and `AgentMailConnectionPanel` components with small typed prop contracts.
+1. [ ] Extract credential field state machines into reusable hooks.
+- Why: `src/routes/tenants.tsx` still carries complex per-field edit/lock/force-entry/feedback timing logic inline.
+- Proposed change: Create `useCredentialFieldState` and `useCredentialValidationFeedback` hooks to isolate timing transitions and reduce route complexity.
 
-2. [ ] Create a reusable credential feedback state hook.
-- Why: validation shimmer/success/error transitions rely on repeated per-field state updates and timeout cleanup logic.
-- Proposed change: Add `src/hooks/use-credential-feedback.ts` with typed APIs for `startValidating`, `setSuccess`, `setError`, and `settle`.
+2. [ ] Introduce a shared provider validation connector factory.
+- Why: credential validation now intentionally bypasses `CONNECTOR_MODE` outside tests, but this policy currently lives inside one service file.
+- Proposed change: Add `server/connectors/validation-factory.ts` to centralize validation connector selection and make behavior explicit.
 
-3. [ ] Add a shared provider validation client boundary.
-- Why: live validation in `server/services/provider-credential-validation-service.ts` now has runtime-specific connector selection that is distinct from provisioning connector selection.
-- Proposed change: Introduce `server/connectors/validation-factory.ts` to centralize validation connector policy (`test` vs non-test) and reduce inline branching.
+3. [ ] Add schema-based parsing for provider read endpoints.
+- Why: connector response normalization (`listSubaccounts`, `listPods`) currently probes multiple key names with manual checks.
+- Proposed change: Use Zod schemas for tolerant parsing with explicit fallback branches and targeted unit tests.
 
-4. [ ] Strengthen MailChannels response parsing with schema validation.
-- Why: `listSubaccounts` currently accepts multiple payload shapes with ad-hoc key probing.
-- Proposed change: Parse provider responses with Zod schemas to make shape handling explicit and testable.
+4. [ ] Add route-level accessibility hooks for validation feedback states.
+- Why: inline `✅`/`❌` feedback is visual-first; there is no dedicated non-visual status text for assistive tech.
+- Proposed change: Add `aria-live` status text tied to each credential field and test it with Testing Library queries.
 
-5. [ ] Add integration coverage for live-validation routing behavior.
-- Why: existing tests verify UI transitions and tenant boundaries, but not the runtime branch that selects live validation connectors in non-test mode.
-- Proposed change: Add service-level tests that mock fetch and assert live connector invocation and error mapping behavior.
-
-6. [ ] Consolidate provider credential redaction/preview logic.
-- Why: preview redaction is currently implemented in both backend preview service and route-level optimistic preview updates.
-- Proposed change: expose a shared utility (`redactCredentialPreview`) on both server/client boundaries to guarantee consistent truncation behavior.
+5. [ ] Split `TenantsRoute` into tenant-management and provider-connection panels.
+- Why: tenant CRUD and provider credential UX are independent responsibilities and increase file size/mental load when combined.
+- Proposed change: Extract `TenantManagementPanel` and `ProviderConnectionsPanel` components to keep route-level orchestration lightweight.
 
 ## Completed In This Branch
-1. [x] Added direct provider API validation before credential persistence for MailChannels and AgentMail.
-2. [x] Implemented inline credential validation UX (shimmer, success/error overlays, timed settle) without status-pill reflow.
-3. [x] Added provider status preview query and editable redacted credential flow for configured tenant connections.
+1. [x] Enforced live provider API validation for credentials in non-test runtime.
+2. [x] Switched provider credential UX to inline validation states (shimmer, success/error overlays) without status-pill reflow.
+3. [x] Removed rendering of raw provider error payloads from credential UI and extended failed-state visibility duration.
