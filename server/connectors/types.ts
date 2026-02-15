@@ -26,7 +26,9 @@ export interface MailchannelsSendResponse {
 }
 
 export interface MailChannelsConnector {
-  listSubaccounts: (input: { parentApiKey: string }) => Promise<Array<{ handle: string }>>;
+  validateCredentials: (input: {
+    parentApiKey: string;
+  }) => Promise<void>;
   createSubaccount: (input: MailchannelsCreateSubaccountInput) => Promise<void>;
   setSubaccountLimit: (input: {
     parentApiKey: string;
@@ -81,9 +83,9 @@ export interface AgentmailInbox {
 }
 
 export interface AgentMailConnector {
-  listPods: (input: {
+  validateCredentials: (input: {
     apiKey: string;
-  }) => Promise<Array<{ podId: string }>>;
+  }) => Promise<void>;
   ensurePod: (input: {
     apiKey: string;
     name: string;

@@ -147,7 +147,7 @@ tests/                # unit/integration/component tests
   - Kept failure feedback inline via `❌` input overlay only, without persistent `.error-message` blocks.
   - Extended failed-validation inline feedback duration to 3x the success duration so rejection is easier to notice.
 - 2026-02-15: added credential validation-first UX for tenant provider connections:
-  - Added provider credential validation hooks in `server/services/provider-credential-validation-service.ts` and enforced validation in `tenants.connectMailchannels` / `tenants.connectAgentmail`.
+  - Added provider credential validation in `server/services/provider-connections-service.ts`, enforced before tenant credential persistence.
   - Validation now performs direct provider API calls before persistence:
     - MailChannels parent key via sub-account listing (`GET /sub-account`)
     - AgentMail API key via pod listing (`GET /pods`)

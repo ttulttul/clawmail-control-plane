@@ -19,8 +19,8 @@ function redactKey(value: string): string {
 }
 
 export class MockMailChannelsConnector implements MailChannelsConnector {
-  async listSubaccounts(): Promise<Array<{ handle: string }>> {
-    return [];
+  async validateCredentials(): Promise<void> {
+    return Promise.resolve();
   }
 
   async createSubaccount(): Promise<void> {
@@ -73,8 +73,8 @@ export class MockMailChannelsConnector implements MailChannelsConnector {
 }
 
 export class MockAgentMailConnector implements AgentMailConnector {
-  async listPods(): Promise<Array<{ podId: string }>> {
-    return [];
+  async validateCredentials(): Promise<void> {
+    return Promise.resolve();
   }
 
   async ensurePod(input: { name: string }): Promise<AgentmailPod> {

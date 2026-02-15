@@ -13,10 +13,6 @@ import {
   saveMailchannelsConnection,
 } from "../services/provider-connections-service.js";
 import {
-  validateAgentmailCredential,
-  validateMailchannelsCredentialUpdate,
-} from "../services/provider-credential-validation-service.js";
-import {
   createTenantForUser,
   listTenantsForUser,
 } from "../services/tenant-service.js";
@@ -69,11 +65,6 @@ export const tenantsRouter = createRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await validateMailchannelsCredentialUpdate({
-        accountId: input.accountId,
-        parentApiKey: input.parentApiKey,
-      });
-
       await saveMailchannelsConnection(ctx.db, {
         tenantId: input.tenantId,
         mailchannelsAccountId: input.accountId,
@@ -104,10 +95,6 @@ export const tenantsRouter = createRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await validateAgentmailCredential({
-        apiKey: input.apiKey,
-      });
-
       await saveAgentmailConnection(ctx.db, {
         tenantId: input.tenantId,
         apiKey: input.apiKey,

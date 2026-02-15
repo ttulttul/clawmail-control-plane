@@ -25,24 +25,6 @@ function ensureOk(
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function getStringByCandidateKeys(
-  value: Record<string, unknown>,
-  keys: string[],
-): string | null {
-  for (const key of keys) {
-    const candidate = value[key];
-    if (typeof candidate === "string") {
-      return candidate;
-    }
-  }
-
-  return null;
-}
-
 export class LiveMailChannelsConnector implements MailChannelsConnector {
   public constructor(private readonly baseUrl: string) {}
 
@@ -70,42 +52,8 @@ export class LiveMailChannelsConnector implements MailChannelsConnector {
     return JSON.parse(text) as T;
   }
 
-  async listSubaccounts(input: { parentApiKey: string }): Promise<Array<{ handle: string }>> {
-    const response = await this.request<unknown>(
-      "/sub-account",
-      { method: "GET" },
-      input.parentApiKey,
-    );
-
-    const entries = Array.isArray(response)
-      ? response
-      : isRecord(response) && Array.isArray(response.sub_accounts)
-        ? response.sub_accounts
-        : isRecord(response) && Array.isArray(response.subaccounts)
-          ? response.subaccounts
-          : [];
-
-    const subaccounts: Array<{ handle: string }> = [];
-
-    for (const entry of entries) {
-      if (!isRecord(entry)) {
-        continue;
-      }
-
-      const handle = getStringByCandidateKeys(entry, [
-        "customer_handle",
-        "handle",
-        "subaccount_handle",
-      ]);
-
-      if (!handle) {
-        continue;
-      }
-
-      subaccounts.push({ handle });
-    }
-
-    return subaccounts;
+  async validateCredentials(input: { parentApiKey: string }): Promise<void> {
+    await this.request("/sub-account", { method: "GET" }, input.parentApiKey);
   }
 
   async createSubaccount(input: { handle: string; parentApiKey: string }): Promise<void> {
@@ -286,35 +234,8 @@ export class LiveAgentMailConnector implements AgentMailConnector {
     return JSON.parse(text) as T;
   }
 
-  async listPods(input: { apiKey: string }): Promise<Array<{ podId: string }>> {
-    const response = await this.request<unknown>(
-      "/pods",
-      { method: "GET" },
-      input.apiKey,
-    );
-
-    const podEntries = Array.isArray(response)
-      ? response
-      : isRecord(response) && Array.isArray(response.pods)
-        ? response.pods
-        : [];
-
-    const pods: Array<{ podId: string }> = [];
-
-    for (const pod of podEntries) {
-      if (!isRecord(pod)) {
-        continue;
-      }
-
-      const podId = getStringByCandidateKeys(pod, ["pod_id", "id"]);
-      if (!podId) {
-        continue;
-      }
-
-      pods.push({ podId });
-    }
-
-    return pods;
+  async validateCredentials(input: { apiKey: string }): Promise<void> {
+    await this.request("/pods", { method: "GET" }, input.apiKey);
   }
 
   async ensurePod(input: { apiKey: string; name: string }): Promise<AgentmailPod> {
