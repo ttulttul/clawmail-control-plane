@@ -11,18 +11,10 @@ import {
 import { createProviderConnectors } from "../connectors/factory.js";
 import type { DatabaseClient } from "../lib/db.js";
 import { createId } from "../lib/id.js";
+import { parseStringArray, safeJsonStringify } from "../lib/json-codec.js";
 import { requireAgentmailConnection } from "./provider-connections-service.js";
 
 const connectors = createProviderConnectors();
-
-function parseStringList(rawValue: string): string[] {
-  const parsed: unknown = JSON.parse(rawValue);
-  if (!Array.isArray(parsed)) {
-    return [];
-  }
-
-  return parsed.filter((value): value is string => typeof value === "string");
-}
 
 export async function ensurePod(
   db: DatabaseClient,
@@ -73,7 +65,7 @@ export async function createAgentmailDomain(
     podId: input.podId,
     domain: created.domain,
     status: created.status,
-    dnsRecordsJson: JSON.stringify(created.dnsRecords),
+    dnsRecordsJson: safeJsonStringify(created.dnsRecords, "[]"),
   });
 
   return created;
@@ -163,6 +155,6 @@ export async function listDomainRecords(
     podId: row.podId,
     domain: row.domain,
     status: row.status,
-    dnsRecords: parseStringList(row.dnsRecordsJson),
+    dnsRecords: parseStringArray(row.dnsRecordsJson),
   }));
 }

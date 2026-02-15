@@ -64,6 +64,14 @@ tests/                # unit/integration/component tests
   - `server/services/provider-credentials-service.ts`
   - `server/services/provider-service.ts` now acts as a compatibility barrel
   - Added integration coverage in `tests/provider-services-refactor.test.ts`
+- 2026-02-15: introduced typed JSON codecs for serialized DB columns:
+  - Added `server/lib/json-codec.ts` with `parseStringArray`, `parseRecord`, `safeJson`, and `safeJsonStringify`
+  - Updated policy, token, send-log, audit-log, and domain record serialization/deserialization paths
+  - Added unit coverage in `tests/json-codec.test.ts`
+- 2026-02-15: consolidated tenant and instance authorization checks into reusable tRPC procedures:
+  - Added `tenantMemberProcedure`, `tenantOperatorProcedure`, `tenantAdminProcedure`, `instanceScopedProcedure`, and `instanceOperatorProcedure` in `server/trpc.ts`
+  - Migrated tenant-scoped routers to composable wrappers and removed repeated inline auth checks
+  - Added integration coverage in `tests/trpc-authorization-procedures.test.ts`
 
 ## Local development
 1. Install dependencies:

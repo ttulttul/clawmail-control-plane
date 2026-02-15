@@ -1,16 +1,20 @@
 import { z } from "zod";
 
-import { createRouter, protectedProcedure } from "../trpc.js";
+import {
+  createRouter,
+  instanceOperatorProcedure,
+  instanceScopedProcedure,
+  tenantMemberProcedure,
+  tenantOperatorProcedure,
+} from "../trpc.js";
 import { recordAuditEvent } from "../services/audit-service.js";
 import {
   createInstance,
   getPolicyForInstance,
   listInstancesByTenant,
-  requireInstance,
   rotateInstanceToken,
   setInstancePolicy,
 } from "../services/instance-service.js";
-import { requireTenantMembership } from "../services/tenant-service.js";
 
 const policyInputSchema = z.object({
   maxRecipientsPerMessage: z.number().int().positive().max(1000),
@@ -22,22 +26,15 @@ const policyInputSchema = z.object({
 });
 
 export const instancesRouter = createRouter({
-  list: protectedProcedure
+  list: tenantMemberProcedure
     .input(
       z.object({
         tenantId: z.string().uuid(),
       }),
     )
-    .query(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-      });
+    .query(async ({ ctx, input }) => listInstancesByTenant(ctx.db, input.tenantId)),
 
-      return listInstancesByTenant(ctx.db, input.tenantId);
-    }),
-
-  create: protectedProcedure
+  create: tenantOperatorProcedure
     .input(
       z.object({
         tenantId: z.string().uuid(),
@@ -46,12 +43,6 @@ export const instancesRouter = createRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-        minimumRole: "operator",
-      });
-
       const instance = await createInstance(ctx.db, {
         tenantId: input.tenantId,
         name: input.name,
@@ -73,7 +64,7 @@ export const instancesRouter = createRouter({
       return instance;
     }),
 
-  rotateToken: protectedProcedure
+  rotateToken: instanceOperatorProcedure
     .input(
       z.object({
         tenantId: z.string().uuid(),
@@ -83,17 +74,6 @@ export const instancesRouter = createRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-        minimumRole: "operator",
-      });
-
-      await requireInstance(ctx.db, {
-        instanceId: input.instanceId,
-        tenantId: input.tenantId,
-      });
-
       const expiresAt =
         input.expiresInHours === null
           ? null
@@ -120,28 +100,16 @@ export const instancesRouter = createRouter({
       return token;
     }),
 
-  getPolicy: protectedProcedure
+  getPolicy: instanceScopedProcedure
     .input(
       z.object({
         tenantId: z.string().uuid(),
         instanceId: z.string().uuid(),
       }),
     )
-    .query(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-      });
+    .query(async ({ ctx, input }) => getPolicyForInstance(ctx.db, input.instanceId)),
 
-      await requireInstance(ctx.db, {
-        instanceId: input.instanceId,
-        tenantId: input.tenantId,
-      });
-
-      return getPolicyForInstance(ctx.db, input.instanceId);
-    }),
-
-  setPolicy: protectedProcedure
+  setPolicy: instanceOperatorProcedure
     .input(
       z.object({
         tenantId: z.string().uuid(),
@@ -150,17 +118,6 @@ export const instancesRouter = createRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-        minimumRole: "operator",
-      });
-
-      await requireInstance(ctx.db, {
-        instanceId: input.instanceId,
-        tenantId: input.tenantId,
-      });
-
       await setInstancePolicy(ctx.db, {
         instanceId: input.instanceId,
         policy: input.policy,

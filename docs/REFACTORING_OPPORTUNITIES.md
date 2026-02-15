@@ -10,13 +10,13 @@ Generated: 2026-02-15
   - `agentmail-provisioning-service.ts`
   - `provider-credentials-service.ts`
 
-2. [ ] Introduce a typed JSON helper layer for serialized columns.
+2. [x] Introduce a typed JSON helper layer for serialized columns. (Completed 2026-02-15)
 - Why: Multiple files parse/stringify JSON arrays and objects manually (`requiredHeadersJson`, `recipientsJson`, etc.), duplicating parsing logic.
-- Proposed change: Add small codec utilities (`parseStringArray`, `parseRecord`, `safeJson`) and centralize null/shape handling.
+- Completed change: added `server/lib/json-codec.ts` with `parseStringArray`, `parseRecord`, `safeJson`, and `safeJsonStringify`, and replaced duplicated parse/stringify logic in services and routers handling serialized columns.
 
-3. [ ] Consolidate tenant/instance authorization checks into middleware wrappers.
+3. [x] Consolidate tenant/instance authorization checks into middleware wrappers. (Completed 2026-02-15)
 - Why: Routers repeatedly call `requireTenantMembership` and `requireInstance` in each procedure.
-- Proposed change: Add composable tRPC middlewares (`tenantMemberProcedure`, `tenantOperatorProcedure`, `instanceScopedProcedure`) to reduce repetition and enforce consistent error semantics.
+- Completed change: Added composable tRPC wrappers in `server/trpc.ts` (`tenantMemberProcedure`, `tenantOperatorProcedure`, `tenantAdminProcedure`, `instanceScopedProcedure`, `instanceOperatorProcedure`) and migrated routers to remove repeated inline authorization checks.
 
 4. [ ] Formalize connector error mapping.
 - Why: Connector failures currently surface mostly as generic errors from fetch paths.

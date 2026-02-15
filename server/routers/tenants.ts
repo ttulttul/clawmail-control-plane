@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { createRouter, protectedProcedure } from "../trpc.js";
+import { createRouter, protectedProcedure, tenantAdminProcedure } from "../trpc.js";
 import { recordAuditEvent } from "../services/audit-service.js";
 import {
   saveAgentmailConnection,
@@ -9,7 +9,6 @@ import {
 import {
   createTenantForUser,
   listTenantsForUser,
-  requireTenantMembership,
 } from "../services/tenant-service.js";
 
 export const tenantsRouter = createRouter({
@@ -41,7 +40,7 @@ export const tenantsRouter = createRouter({
       return tenant;
     }),
 
-  connectMailchannels: protectedProcedure
+  connectMailchannels: tenantAdminProcedure
     .input(
       z.object({
         tenantId: z.string().uuid(),
@@ -50,12 +49,6 @@ export const tenantsRouter = createRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-        minimumRole: "admin",
-      });
-
       await saveMailchannelsConnection(ctx.db, {
         tenantId: input.tenantId,
         mailchannelsAccountId: input.accountId,
@@ -74,7 +67,7 @@ export const tenantsRouter = createRouter({
       return { success: true };
     }),
 
-  connectAgentmail: protectedProcedure
+  connectAgentmail: tenantAdminProcedure
     .input(
       z.object({
         tenantId: z.string().uuid(),
@@ -83,12 +76,6 @@ export const tenantsRouter = createRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-        minimumRole: "admin",
-      });
-
       await saveAgentmailConnection(ctx.db, {
         tenantId: input.tenantId,
         apiKey: input.apiKey,

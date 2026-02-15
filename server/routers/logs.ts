@@ -2,11 +2,11 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { auditLog, sendLog, webhookEvents } from "../../drizzle/schema.js";
-import { createRouter, protectedProcedure } from "../trpc.js";
-import { requireTenantMembership } from "../services/tenant-service.js";
+import { parseRecord, parseStringArray } from "../lib/json-codec.js";
+import { createRouter, tenantMemberProcedure } from "../trpc.js";
 
 export const logsRouter = createRouter({
-  sends: protectedProcedure
+  sends: tenantMemberProcedure
     .input(
       z.object({
         tenantId: z.string().uuid(),
@@ -15,11 +15,6 @@ export const logsRouter = createRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-      });
-
       const rows = await ctx.db.query.sendLog.findMany({
         where:
           input.instanceId === undefined
@@ -38,13 +33,13 @@ export const logsRouter = createRouter({
         requestId: row.requestId,
         providerRequestId: row.providerRequestId,
         fromEmail: row.fromEmail,
-        recipients: JSON.parse(row.recipientsJson) as string[],
+        recipients: parseStringArray(row.recipientsJson),
         providerStatus: row.providerStatus,
         createdAt: row.createdAt,
       }));
     }),
 
-  events: protectedProcedure
+  events: tenantMemberProcedure
     .input(
       z.object({
         tenantId: z.string().uuid(),
@@ -52,11 +47,6 @@ export const logsRouter = createRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-      });
-
       const rows = await ctx.db.query.webhookEvents.findMany({
         where: eq(webhookEvents.tenantId, input.tenantId),
         orderBy: [desc(webhookEvents.receivedAt)],
@@ -73,7 +63,7 @@ export const logsRouter = createRouter({
       }));
     }),
 
-  audit: protectedProcedure
+  audit: tenantMemberProcedure
     .input(
       z.object({
         tenantId: z.string().uuid(),
@@ -81,11 +71,6 @@ export const logsRouter = createRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      await requireTenantMembership(ctx.db, {
-        userId: ctx.auth.user.id,
-        tenantId: input.tenantId,
-      });
-
       const rows = await ctx.db.query.auditLog.findMany({
         where: eq(auditLog.tenantId, input.tenantId),
         orderBy: [desc(auditLog.timestamp)],
@@ -98,7 +83,7 @@ export const logsRouter = createRouter({
         targetType: row.targetType,
         targetId: row.targetId,
         timestamp: row.timestamp,
-        diff: JSON.parse(row.diffJson) as Record<string, unknown>,
+        diff: parseRecord(row.diffJson),
       }));
     }),
 });

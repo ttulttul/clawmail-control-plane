@@ -8,6 +8,7 @@ import {
 import { decryptSecret, encryptSecret } from "../lib/crypto.js";
 import type { DatabaseClient } from "../lib/db.js";
 import { createId } from "../lib/id.js";
+import { safeJsonStringify } from "../lib/json-codec.js";
 
 export async function requireMailchannelsConnection(
   db: DatabaseClient,
@@ -66,7 +67,7 @@ export async function saveMailchannelsConnection(
 
   const encryptedParentApiKey = encryptSecret(input.parentApiKey);
   const webhookEndpointConfig = input.webhookEndpointConfig
-    ? JSON.stringify(input.webhookEndpointConfig)
+    ? safeJsonStringify(input.webhookEndpointConfig, "{}")
     : null;
 
   if (!existing) {

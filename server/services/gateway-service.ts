@@ -6,6 +6,7 @@ import { createProviderConnectors } from "../connectors/factory.js";
 import { decryptSecret, hashString } from "../lib/crypto.js";
 import type { DatabaseClient } from "../lib/db.js";
 import { createId } from "../lib/id.js";
+import { safeJsonStringify } from "../lib/json-codec.js";
 import type { RequestLogger } from "../lib/logger.js";
 import { enforceSendPolicy } from "../policies/policy-engine.js";
 import { getPolicyForInstance, requireInstance } from "./instance-service.js";
@@ -80,7 +81,7 @@ export async function sendViaGateway(
     requestId,
     providerRequestId: response.requestId,
     fromEmail: input.from,
-    recipientsJson: JSON.stringify(input.to),
+    recipientsJson: safeJsonStringify(input.to, "[]"),
     subjectHash: hashString(input.subject),
     providerStatus: response.status,
   });
