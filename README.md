@@ -4,6 +4,11 @@
 
 Self-hostable email control plane for OpenClaw fleets with tenant isolation, per-instance blast-radius controls, centralized webhook ingestion, and gateway-mode API access.
 
+## Why This Exists
+OpenClaw agents become high-risk the moment they can interact with email directly. They can send at machine speed, contact the wrong recipients, leak sensitive context, or continue operating after provider credentials are misconfigured or compromised. Inbound email is equally risky: agents can be manipulated by malicious or unexpected replies, and operators can lose visibility into what influenced agent behavior.
+
+This project exists to put a strict control plane between agents and email providers. Instead of handing raw provider keys to agents, operators provision tenant-scoped providers, instance-scoped credentials, and short-lived scoped gateway tokens. Every send and webhook event is captured, policy-checked, and auditable. The result is practical oversight: agents can still use email, but within enforced limits and with clear operational accountability.
+
 ## Stack
 - Frontend: Vite + React + TanStack Router
 - Backend: Hono + tRPC
