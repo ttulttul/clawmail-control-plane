@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useActiveTenant } from "../hooks/use-active-tenant";
 import { trpc } from "../lib/trpc";
@@ -9,11 +9,19 @@ export function TenantsRoute() {
   const [mailchannelsAccountId, setMailchannelsAccountId] = useState("");
   const [mailchannelsApiKey, setMailchannelsApiKey] = useState("");
   const [agentmailApiKey, setAgentmailApiKey] = useState("");
+  const [mailchannelsAccountIdEditing, setMailchannelsAccountIdEditing] = useState(false);
+  const [mailchannelsApiKeyEditing, setMailchannelsApiKeyEditing] = useState(false);
+  const [agentmailApiKeyEditing, setAgentmailApiKeyEditing] = useState(false);
   const [tenantSuccess, setTenantSuccess] = useState<string | null>(null);
   const [providerSuccess, setProviderSuccess] = useState<string | null>(null);
+  const [providerSuccessFading, setProviderSuccessFading] = useState(false);
 
   const utils = trpc.useUtils();
   const tenants = trpc.tenants.list.useQuery();
+  const providerStatus = trpc.tenants.providerStatus.useQuery(
+    { tenantId: activeTenantId ?? "" },
+    { enabled: Boolean(activeTenantId) },
+  );
 
   const createTenant = trpc.tenants.create.useMutation({
     onMutate: () => {
@@ -30,10 +38,15 @@ export function TenantsRoute() {
     onMutate: () => {
       setProviderSuccess(null);
     },
-    onSuccess: async () => {
-      await utils.logs.audit.invalidate();
+    onSuccess: async (_, input) => {
+      await Promise.all([
+        utils.logs.audit.invalidate(),
+        utils.tenants.providerStatus.invalidate({ tenantId: input.tenantId }),
+      ]);
       setMailchannelsAccountId("");
       setMailchannelsApiKey("");
+      setMailchannelsAccountIdEditing(false);
+      setMailchannelsApiKeyEditing(false);
       setProviderSuccess("MailChannels credentials saved.");
     },
   });
@@ -42,9 +55,13 @@ export function TenantsRoute() {
     onMutate: () => {
       setProviderSuccess(null);
     },
-    onSuccess: async () => {
-      await utils.logs.audit.invalidate();
+    onSuccess: async (_, input) => {
+      await Promise.all([
+        utils.logs.audit.invalidate(),
+        utils.tenants.providerStatus.invalidate({ tenantId: input.tenantId }),
+      ]);
       setAgentmailApiKey("");
+      setAgentmailApiKeyEditing(false);
       setProviderSuccess("AgentMail API key saved.");
     },
   });
@@ -65,7 +82,121 @@ export function TenantsRoute() {
     return null;
   }, [activeTenantId]);
 
-  const providerError = connectMailchannels.error?.message ?? connectAgentmail.error?.message;
+  useEffect(() => {
+    setMailchannelsAccountId("");
+    setMailchannelsApiKey("");
+    setAgentmailApiKey("");
+    setMailchannelsAccountIdEditing(false);
+    setMailchannelsApiKeyEditing(false);
+    setAgentmailApiKeyEditing(false);
+    setProviderSuccess(null);
+    setProviderSuccessFading(false);
+  }, [activeTenantId]);
+
+  useEffect(() => {
+    if (!providerSuccess) {
+      setProviderSuccessFading(false);
+      return;
+    }
+
+    setProviderSuccessFading(false);
+
+    const fadeTimeout = setTimeout(() => {
+      setProviderSuccessFading(true);
+    }, 2600);
+    const dismissTimeout = setTimeout(() => {
+      setProviderSuccess(null);
+      setProviderSuccessFading(false);
+    }, 3200);
+
+    return () => {
+      clearTimeout(fadeTimeout);
+      clearTimeout(dismissTimeout);
+    };
+  }, [providerSuccess]);
+
+  const mailchannelsAccountIdPreview = providerStatus.data?.mailchannelsAccountId ?? null;
+  const mailchannelsParentApiKeyPreview = providerStatus.data?.mailchannelsParentApiKey ?? null;
+  const agentmailApiKeyPreview = providerStatus.data?.agentmailApiKey ?? null;
+
+  const isMailchannelsAccountIdConfigured = Boolean(mailchannelsAccountIdPreview);
+  const isMailchannelsParentApiKeyConfigured = Boolean(mailchannelsParentApiKeyPreview);
+  const isAgentmailApiKeyConfigured = Boolean(agentmailApiKeyPreview);
+
+  const isMailchannelsAccountIdLocked =
+    isMailchannelsAccountIdConfigured && !mailchannelsAccountIdEditing;
+  const isMailchannelsParentApiKeyLocked =
+    isMailchannelsParentApiKeyConfigured && !mailchannelsApiKeyEditing;
+  const isAgentmailApiKeyLocked = isAgentmailApiKeyConfigured && !agentmailApiKeyEditing;
+
+  const mailchannelsNeedsAccountIdInput =
+    !isMailchannelsAccountIdConfigured || mailchannelsAccountIdEditing;
+  const mailchannelsNeedsApiKeyInput =
+    !isMailchannelsParentApiKeyConfigured || mailchannelsApiKeyEditing;
+  const mailchannelsAccountIdReady =
+    !mailchannelsNeedsAccountIdInput || mailchannelsAccountId.trim().length > 0;
+  const mailchannelsApiKeyReady =
+    !mailchannelsNeedsApiKeyInput || mailchannelsApiKey.trim().length > 0;
+  const mailchannelsHasPendingChanges =
+    (mailchannelsNeedsAccountIdInput && mailchannelsAccountId.trim().length > 0) ||
+    (mailchannelsNeedsApiKeyInput && mailchannelsApiKey.trim().length > 0);
+
+  const agentmailNeedsApiKeyInput = !isAgentmailApiKeyConfigured || agentmailApiKeyEditing;
+  const agentmailHasPendingChanges =
+    agentmailNeedsApiKeyInput && agentmailApiKey.trim().length > 0;
+
+  const providerError =
+    connectMailchannels.error?.message ??
+    connectAgentmail.error?.message ??
+    providerStatus.error?.message;
+
+  const beginMailchannelsAccountIdEdit = () => {
+    if (!isMailchannelsAccountIdLocked) {
+      return;
+    }
+
+    setProviderSuccess(null);
+    setMailchannelsAccountId("");
+    setMailchannelsAccountIdEditing(true);
+  };
+
+  const beginMailchannelsApiKeyEdit = () => {
+    if (!isMailchannelsParentApiKeyLocked) {
+      return;
+    }
+
+    setProviderSuccess(null);
+    setMailchannelsApiKey("");
+    setMailchannelsApiKeyEditing(true);
+  };
+
+  const beginAgentmailApiKeyEdit = () => {
+    if (!isAgentmailApiKeyLocked) {
+      return;
+    }
+
+    setProviderSuccess(null);
+    setAgentmailApiKey("");
+    setAgentmailApiKeyEditing(true);
+  };
+
+  const restoreMailchannelsAccountIdPreview = () => {
+    if (mailchannelsAccountIdEditing && mailchannelsAccountId.trim().length === 0) {
+      setMailchannelsAccountIdEditing(false);
+    }
+  };
+
+  const restoreMailchannelsApiKeyPreview = () => {
+    if (mailchannelsApiKeyEditing && mailchannelsApiKey.trim().length === 0) {
+      setMailchannelsApiKeyEditing(false);
+    }
+  };
+
+  const restoreAgentmailApiKeyPreview = () => {
+    if (agentmailApiKeyEditing && agentmailApiKey.trim().length === 0) {
+      setAgentmailApiKeyEditing(false);
+    }
+  };
 
   return (
     <section className="stack">
@@ -161,6 +292,11 @@ export function TenantsRoute() {
         </div>
 
         {providerDisabledReason && <p className="hint-message">{providerDisabledReason}</p>}
+        {!providerDisabledReason && providerStatus.isLoading && (
+          <p className="status-pill info" role="status" aria-live="polite">
+            Loading stored provider credentials...
+          </p>
+        )}
         {connectMailchannels.isPending && (
           <p className="status-pill info" role="status" aria-live="polite">
             Saving MailChannels credentials...
@@ -172,7 +308,11 @@ export function TenantsRoute() {
           </p>
         )}
         {providerSuccess && (
-          <p className="status-pill success" role="status" aria-live="polite">
+          <p
+            className={`status-pill success auto-dismiss ${providerSuccessFading ? "is-fading" : ""}`}
+            role="status"
+            aria-live="polite"
+          >
             {providerSuccess}
           </p>
         )}
@@ -192,39 +332,76 @@ export function TenantsRoute() {
               <label>
                 Account ID
                 <input
-                  value={mailchannelsAccountId}
+                  className={`credential-input ${isMailchannelsAccountIdLocked ? "configured" : ""}`}
+                  value={
+                    isMailchannelsAccountIdLocked
+                      ? (mailchannelsAccountIdPreview ?? "")
+                      : mailchannelsAccountId
+                  }
                   onChange={(event) => {
                     setProviderSuccess(null);
                     setMailchannelsAccountId(event.target.value);
                   }}
-                  placeholder="MailChannels account ID"
+                  onClick={beginMailchannelsAccountIdEdit}
+                  onBlur={restoreMailchannelsAccountIdPreview}
+                  readOnly={isMailchannelsAccountIdLocked}
+                  title={isMailchannelsAccountIdLocked ? "Click to replace this credential." : undefined}
+                  placeholder={
+                    mailchannelsAccountIdEditing
+                      ? "Enter a new MailChannels account id"
+                      : "MailChannels account ID"
+                  }
                 />
               </label>
+              {mailchannelsAccountIdEditing && isMailchannelsAccountIdConfigured && (
+                <p className="hint-message">Enter a new MailChannels account id.</p>
+              )}
               <label>
                 Parent API key
                 <input
-                  value={mailchannelsApiKey}
+                  className={`credential-input ${isMailchannelsParentApiKeyLocked ? "configured" : ""}`}
+                  value={
+                    isMailchannelsParentApiKeyLocked
+                      ? (mailchannelsParentApiKeyPreview ?? "")
+                      : mailchannelsApiKey
+                  }
                   onChange={(event) => {
                     setProviderSuccess(null);
                     setMailchannelsApiKey(event.target.value);
                   }}
-                  placeholder="MailChannels parent API key"
+                  onClick={beginMailchannelsApiKeyEdit}
+                  onBlur={restoreMailchannelsApiKeyPreview}
+                  readOnly={isMailchannelsParentApiKeyLocked}
+                  title={isMailchannelsParentApiKeyLocked ? "Click to replace this credential." : undefined}
+                  placeholder={
+                    mailchannelsApiKeyEditing
+                      ? "Enter a new MailChannels parent API key"
+                      : "MailChannels parent API key"
+                  }
                 />
               </label>
+              {mailchannelsApiKeyEditing && isMailchannelsParentApiKeyConfigured && (
+                <p className="hint-message">Enter a new MailChannels parent API key.</p>
+              )}
               <button
                 type="button"
                 onClick={() =>
                   connectMailchannels.mutate({
                     tenantId: activeTenantId ?? "",
-                    accountId: mailchannelsAccountId.trim(),
-                    parentApiKey: mailchannelsApiKey.trim(),
+                    accountId: mailchannelsNeedsAccountIdInput
+                      ? mailchannelsAccountId.trim()
+                      : undefined,
+                    parentApiKey: mailchannelsNeedsApiKeyInput
+                      ? mailchannelsApiKey.trim()
+                      : undefined,
                   })
                 }
                 disabled={
                   providerDisabledReason !== null ||
                   connectMailchannels.isPending ||
-                  mailchannelsAccountId.trim().length === 0 ||
-                  mailchannelsApiKey.trim().length === 0
+                  !mailchannelsAccountIdReady ||
+                  !mailchannelsApiKeyReady ||
+                  !mailchannelsHasPendingChanges
                 }
               >
                 {connectMailchannels.isPending
@@ -241,14 +418,30 @@ export function TenantsRoute() {
               <label>
                 API key
                 <input
-                  value={agentmailApiKey}
+                  className={`credential-input ${isAgentmailApiKeyLocked ? "configured" : ""}`}
+                  value={
+                    isAgentmailApiKeyLocked
+                      ? (agentmailApiKeyPreview ?? "")
+                      : agentmailApiKey
+                  }
                   onChange={(event) => {
                     setProviderSuccess(null);
                     setAgentmailApiKey(event.target.value);
                   }}
-                  placeholder="AgentMail API key"
+                  onClick={beginAgentmailApiKeyEdit}
+                  onBlur={restoreAgentmailApiKeyPreview}
+                  readOnly={isAgentmailApiKeyLocked}
+                  title={isAgentmailApiKeyLocked ? "Click to replace this credential." : undefined}
+                  placeholder={
+                    agentmailApiKeyEditing
+                      ? "Enter a new AgentMail API key"
+                      : "AgentMail API key"
+                  }
                 />
               </label>
+              {agentmailApiKeyEditing && isAgentmailApiKeyConfigured && (
+                <p className="hint-message">Enter a new AgentMail API key.</p>
+              )}
               <button
                 type="button"
                 onClick={() =>
@@ -260,7 +453,7 @@ export function TenantsRoute() {
                 disabled={
                   providerDisabledReason !== null ||
                   connectAgentmail.isPending ||
-                  agentmailApiKey.trim().length === 0
+                  !agentmailHasPendingChanges
                 }
               >
                 {connectAgentmail.isPending ? "Saving AgentMail..." : "Save AgentMail"}

@@ -1,8 +1,14 @@
 import { z } from "zod";
 
-import { createRouter, protectedProcedure, tenantAdminProcedure } from "../trpc.js";
+import {
+  createRouter,
+  protectedProcedure,
+  tenantAdminProcedure,
+  tenantMemberProcedure,
+} from "../trpc.js";
 import { recordAuditEvent } from "../services/audit-service.js";
 import {
+  getProviderCredentialPreviews,
   saveAgentmailConnection,
   saveMailchannelsConnection,
 } from "../services/provider-connections-service.js";
@@ -15,6 +21,16 @@ export const tenantsRouter = createRouter({
   list: protectedProcedure.query(async ({ ctx }) => {
     return listTenantsForUser(ctx.db, ctx.auth.user.id);
   }),
+
+  providerStatus: tenantMemberProcedure
+    .input(
+      z.object({
+        tenantId: z.string().uuid(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      return getProviderCredentialPreviews(ctx.db, input.tenantId);
+    }),
 
   create: protectedProcedure
     .input(
@@ -44,8 +60,8 @@ export const tenantsRouter = createRouter({
     .input(
       z.object({
         tenantId: z.string().uuid(),
-        accountId: z.string().min(1),
-        parentApiKey: z.string().min(1),
+        accountId: z.string().min(1).optional(),
+        parentApiKey: z.string().min(1).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -61,7 +77,10 @@ export const tenantsRouter = createRouter({
         action: "mailchannels.connection.saved",
         targetType: "mailchannels_connection",
         targetId: input.tenantId,
-        diff: { accountId: input.accountId },
+        diff: {
+          accountId: input.accountId ?? null,
+          parentApiKeyUpdated: input.parentApiKey ? true : null,
+        },
       });
 
       return { success: true };

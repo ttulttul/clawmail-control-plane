@@ -135,6 +135,11 @@ tests/                # unit/integration/component tests
 ```
 
 ## Recent refactors
+- 2026-02-15: improved tenant credential UX for configured provider connections:
+  - Added `tenants.providerStatus` query to return redacted credential previews (prefix + ellipses) for MailChannels and AgentMail.
+  - Updated `src/routes/tenants.tsx` to show grey read-only preview fields that switch to replacement mode when clicked.
+  - Added timed fade-out + auto-dismiss behavior for provider success pills and extra spacing below the success state.
+  - Added coverage in `tests/tenant-boundary.test.ts` and `tests/tenants-route.test.tsx`.
 - 2026-02-15: split provider orchestration into focused services:
   - `server/services/provider-connections-service.ts`
   - `server/services/mailchannels-provisioning-service.ts`
