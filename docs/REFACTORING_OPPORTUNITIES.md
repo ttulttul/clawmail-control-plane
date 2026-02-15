@@ -2,42 +2,49 @@
 
 Generated: 2026-02-15
 
-1. Split `server/services/provider-service.ts` into focused services.
-- Why: This file currently combines connection persistence, provisioning, key rotation, usage sync, and domain listing, which increases coupling and test complexity.
-- Proposed split:
+1. Split `server/services/provider-service.ts` by bounded context.
+- Why: The file currently owns tenant connection storage, MailChannels lifecycle ops, AgentMail provisioning, credential assembly, and domain listing.
+- Risk today: high cognitive load and broad blast radius for small edits.
+- Recommended modules:
   - `provider-connections-service.ts`
-  - `mailchannels-provisioning-service.ts`
-  - `agentmail-provisioning-service.ts`
+  - `mailchannels-subaccount-service.ts`
+  - `agentmail-resource-service.ts`
   - `provider-credentials-service.ts`
 
-2. Introduce a typed JSON helper layer for serialized columns.
-- Why: Multiple files parse/stringify JSON arrays and objects manually (`requiredHeadersJson`, `recipientsJson`, etc.), duplicating parsing logic.
-- Proposed change: Add small codec utilities (`parseStringArray`, `parseRecord`, `safeJson`) and centralize null/shape handling.
+2. Extract shared AgentMail inbox resolution in `server/services/gateway-service.ts`.
+- Why: `listInboxThreads`, `getInboxMessage`, and `replyInboxMessage` repeat the same lookup and credential checks.
+- Risk today: behavior drift and inconsistent error handling over time.
+- Proposed change: add a single helper (`loadAgentmailInboxAccess`) returning `{ inboxId, apiKey }` and reuse it.
 
-3. Consolidate tenant/instance authorization checks into middleware wrappers.
-- Why: Routers repeatedly call `requireTenantMembership` and `requireInstance` in each procedure.
-- Proposed change: Add composable tRPC middlewares (`tenantMemberProcedure`, `tenantOperatorProcedure`, `instanceScopedProcedure`) to reduce repetition and enforce consistent error semantics.
+3. Introduce route-level scope guard middleware for `server/agent/routes.ts`.
+- Why: each handler rechecks `agentAuth` and scope rules manually.
+- Risk today: missing checks on future endpoints.
+- Proposed change: middleware/utility wrappers like `requireAgentScope("send")` and `requireAgentScope("read_inbox")`.
 
-4. Formalize connector error mapping.
-- Why: Connector failures currently surface mostly as generic errors from fetch paths.
-- Proposed change: Add provider error mappers that convert provider status/response bodies into `TRPCError` codes (`BAD_REQUEST`, `CONFLICT`, `UNAUTHORIZED`, `TOO_MANY_REQUESTS`).
+4. Normalize JSON column parsing/stringifying behind typed codecs.
+- Why: JSON fields are serialized in many places (`scopesJson`, `requiredHeadersJson`, `recipientsJson`, `dnsRecordsJson`) with local parse helpers.
+- Risk today: silent shape drift and repetitive defensive code.
+- Proposed change: `server/lib/json-codec.ts` with typed helpers (`parseStringArray`, `parseUnknownRecord`, `stringifyJson`).
 
-5. Break `src/routes/instances.tsx` into smaller components.
-- Why: The page owns creation, provisioning, token rotation, and lifecycle actions in one component.
-- Proposed change:
+5. Break `src/routes/instances.tsx` into composable feature components.
+- Why: a single route component handles creation, MailChannels provisioning, inbox provisioning, token rotation, and lifecycle controls.
+- Risk today: harder targeted testing and more fragile UI state updates.
+- Proposed components:
   - `InstanceCreateForm`
-  - `InstanceList`
-  - `InstanceActions`
-  - `GatewayTokenPanel`
+  - `InstanceRow`
+  - `InstanceProvisionActions`
+  - `TokenRotationPanel`
 
-6. Move scheduler job logic into per-job handlers.
-- Why: `server/jobs/scheduler.ts` mixes queue orchestration with job behavior.
-- Proposed change: Keep scheduler generic and move job behavior into `server/jobs/handlers/*`, then register handlers by job type.
+6. Add an internal provider façade to hide connector branching.
+- Why: call sites currently know too much about MailChannels vs AgentMail operations and credential forms.
+- Risk today: expanding provider support increases conditional complexity.
+- Proposed change: define provider-domain interfaces (`OutboundMailProvider`, `MailboxProvider`) and map connectors behind those interfaces.
 
-7. Add explicit integration tests for gateway policy enforcement.
-- Why: Current tests cover crypto, tenant boundary, and UI behavior, but not `beforeSend` policy outcomes.
-- Proposed test matrix:
-  - missing required headers
-  - per-minute limit exhaustion
-  - daily cap exceeded
-  - allow/deny domain matching
+7. Expand integration tests around gateway policy and auth failure modes.
+- Why: current tests validate crypto, tenant boundaries, and UI selection, but not gateway policy edge cases.
+- Suggested matrix:
+  - send blocked by missing required header
+  - send blocked by deny-list domain
+  - send blocked by per-minute limit
+  - inbox read denied without `read_inbox` scope
+  - token expiry and revoked-token behavior
