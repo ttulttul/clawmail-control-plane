@@ -1,3 +1,5 @@
+![ClawMail banner](docs/images/banner.jpeg)
+
 # ClawMail Control Plane
 
 Self-hostable email control plane for OpenClaw fleets with tenant isolation, per-instance blast-radius controls, centralized webhook ingestion, and gateway-mode API access.
