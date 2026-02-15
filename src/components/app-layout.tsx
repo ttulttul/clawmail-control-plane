@@ -1,4 +1,4 @@
-import { Link, Outlet } from "@tanstack/react-router";
+import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 
 import { AuthGate } from "./auth-gate";
 import { TenantSelector } from "./tenant-selector";
@@ -6,7 +6,7 @@ import { useActiveTenant } from "../hooks/use-active-tenant";
 import { trpc } from "../lib/trpc";
 
 const navLinks = [
-  { to: "/", label: "Dashboard" },
+  { to: "/", label: "Overview" },
   { to: "/tenants", label: "Tenants" },
   { to: "/instances", label: "Instances" },
   { to: "/domains", label: "Domains" },
@@ -14,7 +14,17 @@ const navLinks = [
   { to: "/audit", label: "Audit" },
 ] as const;
 
+function getUserLabel(email: string | null): string {
+  if (!email) {
+    return "Operator";
+  }
+
+  const [name] = email.split("@");
+  return name.length > 0 ? name : "Operator";
+}
+
 export function AppLayout() {
+  const path = useRouterState({ select: (state) => state.location.pathname });
   const session = trpc.auth.me.useQuery();
   const tenants = trpc.tenants.list.useQuery(undefined, {
     enabled: Boolean(session.data),
@@ -37,34 +47,75 @@ export function AppLayout() {
     return <AuthGate />;
   }
 
+  const activePage = navLinks.find((item) => item.to === path)?.label ?? "Control Plane";
+  const userLabel = getUserLabel(session.data.email);
+  const userInitial = userLabel.slice(0, 1).toUpperCase();
+
   return (
-    <div className="shell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">ClawMail</p>
-          <h1>Control Plane</h1>
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="sidebar-brand">
+          <div className="brand-mark" aria-hidden="true">
+            CM
+          </div>
+          <div>
+            <p className="brand-title">ClawMail</p>
+            <p className="brand-subtitle">Mail Operations</p>
+          </div>
         </div>
-        <div className="topbar-actions">
-          <TenantSelector
-            tenants={tenants.data}
-            activeTenantId={activeTenantId}
-            setActiveTenantId={setActiveTenantId}
-          />
-          <button type="button" onClick={() => logout.mutate()}>
-            Logout
-          </button>
+
+        <nav className="sidebar-nav">
+          {navLinks.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className="sidebar-link"
+              activeOptions={{ exact: item.to === "/" }}
+              activeProps={{ className: "sidebar-link active" }}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="user-chip" aria-hidden="true">
+            {userInitial}
+          </div>
+          <div className="sidebar-user-meta">
+            <p>{userLabel}</p>
+            <p>{session.data.email ?? "No email on profile"}</p>
+          </div>
         </div>
-      </header>
-      <nav className="nav-tabs">
-        {navLinks.map((item) => (
-          <Link key={item.to} to={item.to} className="nav-link" activeProps={{ className: "nav-link active" }}>
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-      <main className="page-content">
-        <Outlet />
-      </main>
+      </aside>
+
+      <div className="workspace">
+        <header className="workspace-header">
+          <div>
+            <p className="eyebrow">Control Plane</p>
+            <h1>{activePage}</h1>
+          </div>
+          <div className="workspace-actions">
+            <TenantSelector
+              tenants={tenants.data}
+              activeTenantId={activeTenantId}
+              setActiveTenantId={setActiveTenantId}
+            />
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={() => logout.mutate()}
+              disabled={logout.isPending}
+            >
+              {logout.isPending ? "Logging out..." : "Logout"}
+            </button>
+          </div>
+        </header>
+
+        <main className="page-content">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }
