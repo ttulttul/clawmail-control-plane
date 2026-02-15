@@ -1,13 +1,43 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { formatAuthErrorMessage } from "../lib/auth-errors";
 import { trpc } from "../lib/trpc";
+
+type OAuthProvider = "github" | "google";
+
+const oauthErrorMessages: Record<string, string> = {
+  oauth_provider_not_configured:
+    "Single sign-on is not configured for this provider.",
+  oauth_state_mismatch: "Sign-in session expired. Please try again.",
+  oauth_provider_mismatch: "Sign-in provider did not match. Please try again.",
+  oauth_exchange_failed:
+    "Could not complete OAuth exchange with the provider. Please try again.",
+  oauth_email_not_verified:
+    "Your Google account email must be verified before signing in.",
+  oauth_email_unavailable:
+    "GitHub did not provide a verified email address for this account.",
+  oauth_provider_account_conflict:
+    "This email is already linked to a different account for this provider.",
+  oauth_callback_missing_params: "Sign-in response was missing required fields.",
+  oauth_provider_invalid: "Invalid OAuth provider requested.",
+  oauth_invalid_profile:
+    "We could not validate your provider profile. Please try again.",
+  oauth_callback_failed: "SSO sign-in failed. Please try again.",
+};
 
 export function AuthGate() {
   const utils = trpc.useUtils();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [tenantName, setTenantName] = useState("");
+  const oauthErrorMessage = useMemo(() => {
+    const authError = new URLSearchParams(window.location.search).get("authError");
+    if (!authError) {
+      return null;
+    }
+
+    return oauthErrorMessages[authError] ?? "SSO sign-in failed. Please try again.";
+  }, []);
   const [showPassword, setShowPassword] = useState(false);
 
   const login = trpc.auth.login.useMutation({
@@ -24,8 +54,26 @@ export function AuthGate() {
     },
   });
 
-  const authError = login.error?.message ?? register.error?.message ?? null;
-  const authErrorMessages = authError ? formatAuthErrorMessage(authError) : [];
+const launchOAuthLogin = (provider: OAuthProvider): void => {
+    const searchParams = new URLSearchParams(window.location.search);
+    searchParams.delete("authError");
+    const cleanSearch = searchParams.toString();
+    const nextPath = cleanSearch
+      ? `${window.location.pathname}?${cleanSearch}`
+      : window.location.pathname;
+
+    const oauthStartUrl = new URL(
+      `/auth/oauth/${provider}/start`,
+      window.location.origin,
+    );
+    oauthStartUrl.searchParams.set("next", nextPath);
+    window.location.assign(oauthStartUrl.toString());
+  };
+
+  // Merge error sources: login, register, or oauth params
+  const rawAuthError =
+    login.error?.message ?? register.error?.message ?? oauthErrorMessage ?? null;
+  const authErrorMessages = rawAuthError ? formatAuthErrorMessage(rawAuthError) : [];
 
   return (
     <section className="auth-shell">
@@ -51,6 +99,27 @@ export function AuthGate() {
           <p className="muted-copy">
             Manage tenant provisioning, limits, webhook delivery, and agent gateway
             operations.
+          </p>
+
+          {/* SSO Buttons injected here */}
+          <div className="button-row">
+            <button
+              type="button"
+              className="sso-button"
+              onClick={() => launchOAuthLogin("google")}
+            >
+              Continue with Google
+            </button>
+            <button
+              type="button"
+              className="sso-button"
+              onClick={() => launchOAuthLogin("github")}
+            >
+              Continue with GitHub
+            </button>
+          </div>
+          <p className="muted-text" style={{ textAlign: "center", margin: "1rem 0" }}>
+            Or use your local email and password account.
           </p>
 
           <div className="auth-form">
@@ -125,6 +194,8 @@ export function AuthGate() {
           )}
         </article>
       </div>
+    </section>
+  );
     </section>
   );
 }

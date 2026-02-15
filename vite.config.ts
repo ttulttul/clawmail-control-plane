@@ -10,6 +10,7 @@ export default defineConfig({
       "/healthz": "http://localhost:3000",
       "/agent": "http://localhost:3000",
       "/webhooks": "http://localhost:3000",
+      "/auth": "http://localhost:3000",
     },
   },
 });

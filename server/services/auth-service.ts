@@ -40,7 +40,7 @@ export async function authenticateUser(
     where: eq(users.email, input.email),
   });
 
-  if (!user || !verifyPassword(input.password, user.passwordHash)) {
+  if (!user || !user.passwordHash || !verifyPassword(input.password, user.passwordHash)) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
       message: "Invalid email or password.",

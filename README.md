@@ -29,7 +29,7 @@ This project exists to put a strict control plane between agents and email provi
 - Frontend: Vite + React + TanStack Router
 - Backend: Hono + tRPC
 - Database: SQLite + Drizzle ORM + generated SQL migrations
-- Auth: Lucia session auth
+- Auth: Lucia session auth + optional Google/GitHub OAuth
 - Tests: Vitest + Testing Library
 
 ## Quick Start
@@ -151,12 +151,29 @@ Optional defaults are baked in for local development.
 
 - `PORT` (default: `3000`)
 - `DATABASE_URL` (default: `./data/clawmail.db`)
+- `AUTH_PUBLIC_URL` (optional public app URL used for OAuth callback URLs, e.g. `https://controlplane.example.com`)
+- `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` (optional, required to enable GitHub SSO)
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` (optional, required to enable Google SSO)
 - `APP_ENCRYPTION_KEY` (base64 preferred; dev fallback is used when missing)
 - `CONNECTOR_MODE` (`mock` or `live`, default: `mock`)
 - `MAILCHANNELS_BASE_URL` (default MailChannels API base)
 - `AGENTMAIL_BASE_URL` (default AgentMail API base)
 - `MAILCHANNELS_WEBHOOK_VERIFY` (`true`/`false`, default: `false`)
 - `WEBHOOK_SHARED_SECRET` (optional webhook shared secret)
+
+## OAuth SSO setup (Google and GitHub)
+SSO remains self-hosted: this app only calls Google/GitHub OAuth endpoints directly and does not depend on a third-party auth broker.
+
+1. Configure OAuth apps in each provider.
+2. Set `AUTH_PUBLIC_URL` to the externally reachable URL for this app.
+3. Set provider credentials via env vars.
+4. Register these callback URLs with providers:
+   - Google: `https://<your-host>/auth/oauth/google/callback`
+   - GitHub: `https://<your-host>/auth/oauth/github/callback`
+
+For local development with Vite (`http://localhost:5173`), use:
+- `AUTH_PUBLIC_URL=http://localhost:5173`
+- callback URLs on `http://localhost:5173/auth/oauth/...` (Vite proxies `/auth` to the backend)
 
 ## Migrations
 Generate migration SQL from schema:
