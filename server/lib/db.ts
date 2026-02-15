@@ -5,7 +5,9 @@ import { join } from "node:path";
 
 import * as schema from "../../drizzle/schema.js";
 import { env } from "./env.js";
+import { ensureSqliteDatabaseDirectory } from "./sqlite-path.js";
 
+ensureSqliteDatabaseDirectory(env.DATABASE_URL);
 const sqlite = new Database(env.DATABASE_URL);
 sqlite.pragma("foreign_keys = ON");
 sqlite.pragma("journal_mode = WAL");
