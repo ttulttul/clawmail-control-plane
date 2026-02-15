@@ -12,6 +12,7 @@ import type { DatabaseClient } from "../lib/db.js";
 import { createId, toSubaccountHandle } from "../lib/id.js";
 import { setInstanceStatus } from "./instance-service.js";
 import { requireMailchannelsConnection } from "./provider-connections-service.js";
+import { withProviderErrorMapping } from "./provider-error-mapper.js";
 
 const connectors = createProviderConnectors();
 
@@ -78,28 +79,44 @@ export async function provisionMailchannelsSubaccount(
 
   const handle = toSubaccountHandle(`${instance.name}${instance.id.slice(0, 6)}`);
 
-  await connectors.mailchannels.createSubaccount({
-    parentApiKey: connection.apiKey,
-    handle,
-  });
+  await withProviderErrorMapping(
+    () =>
+      connectors.mailchannels.createSubaccount({
+        parentApiKey: connection.apiKey,
+        handle,
+      }),
+    "Failed to create MailChannels sub-account.",
+  );
 
-  await connectors.mailchannels.setSubaccountLimit({
-    parentApiKey: connection.apiKey,
-    handle,
-    limit: input.limit,
-  });
+  await withProviderErrorMapping(
+    () =>
+      connectors.mailchannels.setSubaccountLimit({
+        parentApiKey: connection.apiKey,
+        handle,
+        limit: input.limit,
+      }),
+    "Failed to apply MailChannels sending limit.",
+  );
 
   if (input.suspended) {
-    await connectors.mailchannels.suspendSubaccount({
-      parentApiKey: connection.apiKey,
-      handle,
-    });
+    await withProviderErrorMapping(
+      () =>
+        connectors.mailchannels.suspendSubaccount({
+          parentApiKey: connection.apiKey,
+          handle,
+        }),
+      "Failed to suspend MailChannels sub-account during provisioning.",
+    );
   }
 
-  const key = await connectors.mailchannels.createSubaccountApiKey({
-    parentApiKey: connection.apiKey,
-    handle,
-  });
+  const key = await withProviderErrorMapping(
+    () =>
+      connectors.mailchannels.createSubaccountApiKey({
+        parentApiKey: connection.apiKey,
+        handle,
+      }),
+    "Failed to create MailChannels API key.",
+  );
 
   db.transaction((tx) => {
     tx
@@ -152,11 +169,15 @@ export async function setSubaccountLimit(
   const subaccount = await requireProvisionedSubaccount(db, input);
   const connection = await requireMailchannelsConnection(db, input.tenantId);
 
-  await connectors.mailchannels.setSubaccountLimit({
-    parentApiKey: connection.apiKey,
-    handle: subaccount.handle,
-    limit: input.limit,
-  });
+  await withProviderErrorMapping(
+    () =>
+      connectors.mailchannels.setSubaccountLimit({
+        parentApiKey: connection.apiKey,
+        handle: subaccount.handle,
+        limit: input.limit,
+      }),
+    "Failed to update MailChannels sending limit.",
+  );
 
   await db
     .update(mailchannelsSubaccounts)
@@ -174,10 +195,14 @@ export async function deleteSubaccountLimit(
   const subaccount = await requireProvisionedSubaccount(db, input);
   const connection = await requireMailchannelsConnection(db, input.tenantId);
 
-  await connectors.mailchannels.deleteSubaccountLimit({
-    parentApiKey: connection.apiKey,
-    handle: subaccount.handle,
-  });
+  await withProviderErrorMapping(
+    () =>
+      connectors.mailchannels.deleteSubaccountLimit({
+        parentApiKey: connection.apiKey,
+        handle: subaccount.handle,
+      }),
+    "Failed to delete MailChannels sending limit.",
+  );
 
   await db
     .update(mailchannelsSubaccounts)
@@ -195,10 +220,14 @@ export async function suspendSubaccount(
   const subaccount = await requireProvisionedSubaccount(db, input);
   const connection = await requireMailchannelsConnection(db, input.tenantId);
 
-  await connectors.mailchannels.suspendSubaccount({
-    parentApiKey: connection.apiKey,
-    handle: subaccount.handle,
-  });
+  await withProviderErrorMapping(
+    () =>
+      connectors.mailchannels.suspendSubaccount({
+        parentApiKey: connection.apiKey,
+        handle: subaccount.handle,
+      }),
+    "Failed to suspend MailChannels sub-account.",
+  );
 
   db.transaction((tx) => {
     tx
@@ -225,10 +254,14 @@ export async function activateSubaccount(
   const subaccount = await requireProvisionedSubaccount(db, input);
   const connection = await requireMailchannelsConnection(db, input.tenantId);
 
-  await connectors.mailchannels.activateSubaccount({
-    parentApiKey: connection.apiKey,
-    handle: subaccount.handle,
-  });
+  await withProviderErrorMapping(
+    () =>
+      connectors.mailchannels.activateSubaccount({
+        parentApiKey: connection.apiKey,
+        handle: subaccount.handle,
+      }),
+    "Failed to activate MailChannels sub-account.",
+  );
 
   db.transaction((tx) => {
     tx
@@ -266,11 +299,15 @@ export async function rotateSubaccountKey(
 
   if (currentKeys.length >= 2) {
     const retiringKey = currentKeys[currentKeys.length - 1];
-    await connectors.mailchannels.deleteSubaccountApiKey({
-      parentApiKey: connection.apiKey,
-      handle: subaccount.handle,
-      providerKeyId: retiringKey.providerKeyId,
-    });
+    await withProviderErrorMapping(
+      () =>
+        connectors.mailchannels.deleteSubaccountApiKey({
+          parentApiKey: connection.apiKey,
+          handle: subaccount.handle,
+          providerKeyId: retiringKey.providerKeyId,
+        }),
+      "Failed to retire existing MailChannels API key.",
+    );
 
     await db
       .update(mailchannelsSubaccountKeys)
@@ -278,10 +315,14 @@ export async function rotateSubaccountKey(
       .where(eq(mailchannelsSubaccountKeys.id, retiringKey.id));
   }
 
-  const key = await connectors.mailchannels.createSubaccountApiKey({
-    parentApiKey: connection.apiKey,
-    handle: subaccount.handle,
-  });
+  const key = await withProviderErrorMapping(
+    () =>
+      connectors.mailchannels.createSubaccountApiKey({
+        parentApiKey: connection.apiKey,
+        handle: subaccount.handle,
+      }),
+    "Failed to rotate MailChannels API key.",
+  );
 
   db.transaction((tx) => {
     tx
@@ -326,10 +367,14 @@ export async function syncSubaccountUsage(
   const subaccount = await requireProvisionedSubaccount(db, input);
   const connection = await requireMailchannelsConnection(db, input.tenantId);
 
-  const usage = await connectors.mailchannels.retrieveSubaccountUsage({
-    parentApiKey: connection.apiKey,
-    handle: subaccount.handle,
-  });
+  const usage = await withProviderErrorMapping(
+    () =>
+      connectors.mailchannels.retrieveSubaccountUsage({
+        parentApiKey: connection.apiKey,
+        handle: subaccount.handle,
+      }),
+    "Failed to retrieve MailChannels usage.",
+  );
 
   await db
     .update(mailchannelsSubaccounts)
@@ -344,7 +389,11 @@ export async function validateMailchannelsWebhook(
   tenantId: string,
 ): Promise<{ ok: boolean; message: string }> {
   const connection = await requireMailchannelsConnection(db, tenantId);
-  return connectors.mailchannels.validateWebhook({
-    parentApiKey: connection.apiKey,
-  });
+  return withProviderErrorMapping(
+    () =>
+      connectors.mailchannels.validateWebhook({
+        parentApiKey: connection.apiKey,
+      }),
+    "Failed to validate MailChannels webhook configuration.",
+  );
 }

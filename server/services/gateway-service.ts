@@ -11,6 +11,7 @@ import type { RequestLogger } from "../lib/logger.js";
 import { enforceSendPolicy } from "../policies/policy-engine.js";
 import { getPolicyForInstance, requireInstance } from "./instance-service.js";
 import { getInstanceProviderCredentials } from "./provider-credentials-service.js";
+import { withProviderErrorMapping } from "./provider-error-mapper.js";
 
 const connectors = createProviderConnectors();
 
@@ -63,16 +64,20 @@ export async function sendViaGateway(
     ? decryptSecret(credentials.encryptedKey)
     : credentials.parentApiKey;
 
-  const response = await connectors.mailchannels.sendEmail({
-    parentOrSubaccountApiKey: providerApiKey,
-    accountId: credentials.subaccountHandle,
-    from: input.from,
-    to: input.to,
-    subject: input.subject,
-    textBody: input.textBody,
-    htmlBody: input.htmlBody,
-    headers: input.headers,
-  });
+  const response = await withProviderErrorMapping(
+    () =>
+      connectors.mailchannels.sendEmail({
+        parentOrSubaccountApiKey: providerApiKey,
+        accountId: credentials.subaccountHandle,
+        from: input.from,
+        to: input.to,
+        subject: input.subject,
+        textBody: input.textBody,
+        htmlBody: input.htmlBody,
+        headers: input.headers,
+      }),
+    "Failed to send email via MailChannels.",
+  );
 
   await db.insert(sendLog).values({
     id: createId(),
@@ -156,10 +161,15 @@ export async function listInboxThreads(
     });
   }
 
-  return connectors.agentmail.listThreads({
-    apiKey: credentials.agentmailApiKey,
-    inboxId: inbox.inboxId,
-  });
+  const agentmailApiKey = credentials.agentmailApiKey;
+  return withProviderErrorMapping(
+    () =>
+      connectors.agentmail.listThreads({
+        apiKey: agentmailApiKey,
+        inboxId: inbox.inboxId,
+      }),
+    "Failed to list AgentMail threads.",
+  );
 }
 
 export async function getInboxMessage(
@@ -196,11 +206,16 @@ export async function getInboxMessage(
     });
   }
 
-  return connectors.agentmail.getMessage({
-    apiKey: credentials.agentmailApiKey,
-    inboxId: inbox.inboxId,
-    messageId: input.messageId,
-  });
+  const agentmailApiKey = credentials.agentmailApiKey;
+  return withProviderErrorMapping(
+    () =>
+      connectors.agentmail.getMessage({
+        apiKey: agentmailApiKey,
+        inboxId: inbox.inboxId,
+        messageId: input.messageId,
+      }),
+    "Failed to retrieve AgentMail message.",
+  );
 }
 
 export async function replyInboxMessage(
@@ -238,10 +253,15 @@ export async function replyInboxMessage(
     });
   }
 
-  return connectors.agentmail.replyToMessage({
-    apiKey: credentials.agentmailApiKey,
-    inboxId: inbox.inboxId,
-    messageId: input.messageId,
-    body: input.body,
-  });
+  const agentmailApiKey = credentials.agentmailApiKey;
+  return withProviderErrorMapping(
+    () =>
+      connectors.agentmail.replyToMessage({
+        apiKey: agentmailApiKey,
+        inboxId: inbox.inboxId,
+        messageId: input.messageId,
+        body: input.body,
+      }),
+    "Failed to send AgentMail reply.",
+  );
 }

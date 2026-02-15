@@ -13,6 +13,7 @@ import type { DatabaseClient } from "../lib/db.js";
 import { createId } from "../lib/id.js";
 import { parseStringArray, safeJsonStringify } from "../lib/json-codec.js";
 import { requireAgentmailConnection } from "./provider-connections-service.js";
+import { withProviderErrorMapping } from "./provider-error-mapper.js";
 
 const connectors = createProviderConnectors();
 
@@ -29,10 +30,14 @@ export async function ensurePod(
   }
 
   const connection = await requireAgentmailConnection(db, input.tenantId);
-  const pod = await connectors.agentmail.ensurePod({
-    apiKey: connection.apiKey,
-    name: input.podName,
-  });
+  const pod = await withProviderErrorMapping(
+    () =>
+      connectors.agentmail.ensurePod({
+        apiKey: connection.apiKey,
+        name: input.podName,
+      }),
+    "Failed to create AgentMail pod.",
+  );
 
   await db.insert(agentmailPods).values({
     id: createId(),
@@ -53,11 +58,15 @@ export async function createAgentmailDomain(
   input: { tenantId: string; podId: string; domain: string },
 ): Promise<{ domain: string; status: string; dnsRecords: string[] }> {
   const connection = await requireAgentmailConnection(db, input.tenantId);
-  const created = await connectors.agentmail.createDomain({
-    apiKey: connection.apiKey,
-    podId: input.podId,
-    domain: input.domain,
-  });
+  const created = await withProviderErrorMapping(
+    () =>
+      connectors.agentmail.createDomain({
+        apiKey: connection.apiKey,
+        podId: input.podId,
+        domain: input.domain,
+      }),
+    "Failed to create AgentMail domain.",
+  );
 
   await db.insert(agentmailDomains).values({
     id: createId(),
@@ -113,12 +122,16 @@ export async function createAgentmailInboxForInstance(
       })
     ).podId;
 
-  const created = await connectors.agentmail.createInbox({
-    apiKey: connection.apiKey,
-    podId,
-    username: input.username,
-    domain: input.domain,
-  });
+  const created = await withProviderErrorMapping(
+    () =>
+      connectors.agentmail.createInbox({
+        apiKey: connection.apiKey,
+        podId,
+        username: input.username,
+        domain: input.domain,
+      }),
+    "Failed to create AgentMail inbox.",
+  );
 
   await db.insert(agentmailInboxes).values({
     id: createId(),

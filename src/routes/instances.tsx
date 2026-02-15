@@ -1,5 +1,8 @@
 import { useState } from "react";
 
+import { GatewayTokenPanel } from "../components/instances/gateway-token-panel";
+import { InstanceCreateForm } from "../components/instances/instance-create-form";
+import { InstanceList } from "../components/instances/instance-list";
 import { useActiveTenant } from "../hooks/use-active-tenant";
 import { trpc } from "../lib/trpc";
 
@@ -61,130 +64,78 @@ export function InstancesRoute() {
     return <p>Select a tenant to manage instances.</p>;
   }
 
+  const tenantId = activeTenantId;
+
+  function handleCreateInstance(): void {
+    createInstance.mutate({
+      tenantId,
+      name: instanceName,
+      mode: "gateway",
+    });
+  }
+
+  function handleProvisionMailchannels(instanceId: string): void {
+    provisionSubaccount.mutate({
+      tenantId,
+      instanceId,
+      limit,
+      suspended: false,
+      persistDirectKey: false,
+    });
+  }
+
+  function handleProvisionInbox(instanceId: string): void {
+    createInbox.mutate({
+      tenantId,
+      instanceId,
+      username,
+    });
+  }
+
+  function handleRotateToken(instanceId: string): void {
+    rotateToken.mutate({
+      tenantId,
+      instanceId,
+      scopes: ["send", "read_inbox"],
+      expiresInHours: null,
+    });
+  }
+
+  function handleSuspend(instanceId: string): void {
+    suspend.mutate({
+      tenantId,
+      instanceId,
+    });
+  }
+
+  function handleActivate(instanceId: string): void {
+    activate.mutate({
+      tenantId,
+      instanceId,
+    });
+  }
+
   return (
     <section className="stack">
-      <article className="panel">
-        <h2>Create Instance</h2>
-        <div className="button-row">
-          <input
-            value={instanceName}
-            onChange={(event) => setInstanceName(event.target.value)}
-            placeholder="Instance name"
-          />
-          <button
-            type="button"
-            onClick={() =>
-              createInstance.mutate({
-                tenantId: activeTenantId,
-                name: instanceName,
-                mode: "gateway",
-              })
-            }
-            disabled={createInstance.isPending || instanceName.length < 2}
-          >
-            Create
-          </button>
-        </div>
-      </article>
-
-      <article className="panel">
-        <h2>Instances</h2>
-        <ul>
-          {instances.data?.map((instance) => (
-            <li key={instance.id} className="instance-row">
-              <div>
-                <strong>{instance.name}</strong>
-                <p>
-                  {instance.mode} | {instance.status}
-                </p>
-              </div>
-              <div className="button-row">
-                <button
-                  type="button"
-                  onClick={() =>
-                    provisionSubaccount.mutate({
-                      tenantId: activeTenantId,
-                      instanceId: instance.id,
-                      limit,
-                      suspended: false,
-                      persistDirectKey: false,
-                    })
-                  }
-                >
-                  Provision MailChannels
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    createInbox.mutate({
-                      tenantId: activeTenantId,
-                      instanceId: instance.id,
-                      username,
-                    })
-                  }
-                >
-                  Provision Inbox
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    rotateToken.mutate({
-                      tenantId: activeTenantId,
-                      instanceId: instance.id,
-                      scopes: ["send", "read_inbox"],
-                      expiresInHours: null,
-                    })
-                  }
-                >
-                  Rotate Gateway Token
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    suspend.mutate({
-                      tenantId: activeTenantId,
-                      instanceId: instance.id,
-                    })
-                  }
-                >
-                  Suspend
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    activate.mutate({
-                      tenantId: activeTenantId,
-                      instanceId: instance.id,
-                    })
-                  }
-                >
-                  Activate
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-        <div className="button-row">
-          <label>
-            Default limit
-            <input
-              type="number"
-              min={-1}
-              value={limit}
-              onChange={(event) => setLimit(Number(event.target.value))}
-            />
-          </label>
-          <label>
-            Inbox username
-            <input value={username} onChange={(event) => setUsername(event.target.value)} />
-          </label>
-        </div>
-        {createdToken && (
-          <p className="token-output">
-            New gateway token (shown once): <code>{createdToken}</code>
-          </p>
-        )}
-      </article>
+      <InstanceCreateForm
+        instanceName={instanceName}
+        createPending={createInstance.isPending}
+        onInstanceNameChange={setInstanceName}
+        onCreate={handleCreateInstance}
+      />
+      <InstanceList
+        instances={instances.data}
+        limit={limit}
+        username={username}
+        onLimitChange={setLimit}
+        onUsernameChange={setUsername}
+        onProvisionMailchannels={handleProvisionMailchannels}
+        onProvisionInbox={handleProvisionInbox}
+        onRotateGatewayToken={handleRotateToken}
+        onSuspend={handleSuspend}
+        onActivate={handleActivate}
+      />
+      <GatewayTokenPanel token={createdToken} />
     </section>
   );
 }

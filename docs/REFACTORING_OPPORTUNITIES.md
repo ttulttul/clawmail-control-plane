@@ -18,25 +18,25 @@ Generated: 2026-02-15
 - Why: Routers repeatedly call `requireTenantMembership` and `requireInstance` in each procedure.
 - Completed change: Added composable tRPC wrappers in `server/trpc.ts` (`tenantMemberProcedure`, `tenantOperatorProcedure`, `tenantAdminProcedure`, `instanceScopedProcedure`, `instanceOperatorProcedure`) and migrated routers to remove repeated inline authorization checks.
 
-4. [ ] Formalize connector error mapping.
+4. [x] Formalize connector error mapping. (Completed 2026-02-15)
 - Why: Connector failures currently surface mostly as generic errors from fetch paths.
-- Proposed change: Add provider error mappers that convert provider status/response bodies into `TRPCError` codes (`BAD_REQUEST`, `CONFLICT`, `UNAUTHORIZED`, `TOO_MANY_REQUESTS`).
+- Completed change: Added `ProviderHttpError` and provider error mapping helpers to convert connector HTTP failures into typed `TRPCError` codes (`BAD_REQUEST`, `CONFLICT`, `UNAUTHORIZED`, `TOO_MANY_REQUESTS`, plus scoped fallbacks), and applied mapping across MailChannels and AgentMail call paths.
 
-5. [ ] Break `src/routes/instances.tsx` into smaller components.
+5. [x] Break `src/routes/instances.tsx` into smaller components. (Completed 2026-02-15)
 - Why: The page owns creation, provisioning, token rotation, and lifecycle actions in one component.
-- Proposed change:
+- Completed split:
   - `InstanceCreateForm`
   - `InstanceList`
   - `InstanceActions`
   - `GatewayTokenPanel`
 
-6. [ ] Move scheduler job logic into per-job handlers.
+6. [x] Move scheduler job logic into per-job handlers. (Completed 2026-02-15)
 - Why: `server/jobs/scheduler.ts` mixes queue orchestration with job behavior.
-- Proposed change: Keep scheduler generic and move job behavior into `server/jobs/handlers/*`, then register handlers by job type.
+- Completed change: Added `server/jobs/handlers/*` with a typed handler registry and moved `sync-usage`/`validate-webhooks` behavior out of `server/jobs/scheduler.ts`, leaving scheduler focused on queue orchestration.
 
-7. [ ] Add explicit integration tests for gateway policy enforcement.
+7. [x] Add explicit integration tests for gateway policy enforcement. (Completed 2026-02-15)
 - Why: Current tests cover crypto, tenant boundary, and UI behavior, but not `beforeSend` policy outcomes.
-- Proposed test matrix:
+- Completed test matrix (see `tests/gateway-policy-enforcement.test.ts`):
   - missing required headers
   - per-minute limit exhaustion
   - daily cap exceeded
