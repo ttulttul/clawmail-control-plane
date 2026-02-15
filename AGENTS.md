@@ -13,6 +13,18 @@
 - **Auth:** Lucia for session-based authentication, backed by the same SQLite database.
 - **Deployment target:** Single Docker container (static assets served by Hono in production). Keep the footprint small and self-hostable.
 
+## UI design principles (Nielsen Norman / DOET)
+- Apply Nielsen heuristics and Don Norman's *The Design of Everyday Things* principles in every UI change: discoverability, feedback, conceptual models, affordances/signifiers, mapping, and constraints.
+- Ensure visibility of system status: every async action should show loading, success, and failure states; long-running actions need progress indicators and a clear cancel/retry path.
+- Match the real world and user mental models: use domain language users recognize, group related actions near affected content, and keep flows aligned with real tasks.
+- Make affordances obvious: interactive elements should look interactive (contrast, states, cursor, spacing), and destructive actions must be visually distinct and explicitly labeled.
+- Use natural mapping and consistency: place controls where users expect them, keep interaction patterns consistent across routes, and follow common web conventions.
+- Prevent errors with constraints: disable impossible actions, validate inputs at the point of entry, and require confirmation for irreversible operations.
+- Preserve user control and freedom: provide undo/revert where feasible, always support cancel/back exits, and prefer safe defaults over risky ones.
+- Favor recognition over recall: expose key options in context, use sensible defaults, and provide inline guidance so users do not need to memorize steps.
+- Support recovery from errors: error messages should explain what happened, why it happened, and what to do next without losing user input.
+- Treat accessibility as a usability requirement: design for keyboard navigation, visible focus, readable contrast, and semantic labels (target WCAG 2.2 AA).
+
 ## Dev process tips
 - Use `console.warn` and `console.error` sparingly in application code; prefer structured logging via a lightweight logger (e.g., `pino` or `consola`) attached to the Hono context so every request carries a correlation ID.
 - In most cases where an error condition is encountered, throw an appropriate `TRPCError` with a meaningful `code` (`BAD_REQUEST`, `NOT_FOUND`, `UNAUTHORIZED`, etc.) and a human-readable `message`. We want to know what went wrong and where.
