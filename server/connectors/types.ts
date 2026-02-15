@@ -80,6 +80,9 @@ export interface AgentmailInbox {
 }
 
 export interface AgentMailConnector {
+  listPods: (input: {
+    apiKey: string;
+  }) => Promise<Array<{ podId: string }>>;
   ensurePod: (input: {
     apiKey: string;
     name: string;

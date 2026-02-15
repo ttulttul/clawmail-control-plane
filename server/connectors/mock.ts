@@ -69,6 +69,10 @@ export class MockMailChannelsConnector implements MailChannelsConnector {
 }
 
 export class MockAgentMailConnector implements AgentMailConnector {
+  async listPods(): Promise<Array<{ podId: string }>> {
+    return [];
+  }
+
   async ensurePod(input: { name: string }): Promise<AgentmailPod> {
     return { podId: `pod_${input.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}` };
   }

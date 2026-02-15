@@ -9,9 +9,21 @@ interface ProviderStatusData {
   agentmailApiKey: string | null;
 }
 
+interface MailchannelsMutationInput {
+  tenantId: string;
+  accountId?: string;
+  parentApiKey?: string;
+}
+
+interface AgentmailMutationInput {
+  tenantId: string;
+  apiKey: string;
+}
+
 interface MutationOptions<TInput> {
-  onMutate?: () => void;
+  onMutate?: (input: TInput) => void;
   onSuccess?: (data: unknown, input: TInput) => Promise<void> | void;
+  onError?: (error: Error, input: TInput) => void;
 }
 
 const mocks = vi.hoisted(() => ({
@@ -55,13 +67,22 @@ function createMutationMock<TInput>(
   };
 }
 
-async function flushMicrotasks(): Promise<void> {
-  await Promise.resolve();
-  await Promise.resolve();
+async function advanceTimerAndFlush(ms: number): Promise<void> {
+  await act(async () => {
+    vi.advanceTimersByTime(ms);
+    await Promise.resolve();
+    await Promise.resolve();
+  });
 }
 
 describe("TenantsRoute", () => {
   let providerStatusData: ProviderStatusData;
+  let mailchannelsOutcome: "success" | "error";
+  let agentmailOutcome: "success" | "error";
+  let autoResolveMutations: boolean;
+  const mailchannelsErrorMessage = "Unable to validate the MailChannels parent API key.";
+  const agentmailErrorMessage = "Unable to validate the AgentMail API key.";
+
   const mailchannelsMutate = vi.fn();
   const agentmailMutate = vi.fn();
 
@@ -71,6 +92,9 @@ describe("TenantsRoute", () => {
       mailchannelsParentApiKey: "secret...",
       agentmailApiKey: "agentm...",
     };
+    mailchannelsOutcome = "success";
+    agentmailOutcome = "success";
+    autoResolveMutations = true;
 
     mailchannelsMutate.mockReset();
     agentmailMutate.mockReset();
@@ -108,29 +132,53 @@ describe("TenantsRoute", () => {
     );
 
     mocks.connectMailchannelsUseMutation.mockImplementation(
-      (
-        options?: MutationOptions<{
-          tenantId: string;
-          accountId?: string;
-          parentApiKey?: string;
-        }>,
-      ) =>
-        createMutationMock<{
-          tenantId: string;
-          accountId?: string;
-          parentApiKey?: string;
-        }>((input) => {
-          options?.onMutate?.();
+      (options?: MutationOptions<MailchannelsMutationInput>) =>
+        createMutationMock<MailchannelsMutationInput>((input) => {
+          options?.onMutate?.(input);
           mailchannelsMutate(input);
+
+          if (!autoResolveMutations) {
+            return;
+          }
+
+          setTimeout(() => {
+            if (mailchannelsOutcome === "success") {
+              if (typeof input.accountId === "string") {
+                providerStatusData.mailchannelsAccountId = "mcacct...";
+              }
+
+              if (typeof input.parentApiKey === "string") {
+                providerStatusData.mailchannelsParentApiKey = "secret...";
+              }
+
+              void options?.onSuccess?.({ success: true }, input);
+              return;
+            }
+
+            options?.onError?.(new Error(mailchannelsErrorMessage), input);
+          }, 100);
         }),
     );
 
     mocks.connectAgentmailUseMutation.mockImplementation(
-      (options?: MutationOptions<{ tenantId: string; apiKey: string }>) =>
-        createMutationMock<{ tenantId: string; apiKey: string }>((input) => {
-          options?.onMutate?.();
+      (options?: MutationOptions<AgentmailMutationInput>) =>
+        createMutationMock<AgentmailMutationInput>((input) => {
+          options?.onMutate?.(input);
           agentmailMutate(input);
-          void options?.onSuccess?.({ success: true }, input);
+
+          if (!autoResolveMutations) {
+            return;
+          }
+
+          setTimeout(() => {
+            if (agentmailOutcome === "success") {
+              providerStatusData.agentmailApiKey = "agentm...";
+              void options?.onSuccess?.({ success: true }, input);
+              return;
+            }
+
+            options?.onError?.(new Error(agentmailErrorMessage), input);
+          }, 100);
         }),
     );
   });
@@ -140,7 +188,9 @@ describe("TenantsRoute", () => {
     vi.useRealTimers();
   });
 
-  test("shows configured redacted credential previews and allows replacing a single MailChannels field", () => {
+  test("shows configured redacted previews and sends only edited MailChannels fields", () => {
+    autoResolveMutations = false;
+
     render(<TenantsRoute />);
 
     const accountInput = screen.getByLabelText("Account ID");
@@ -172,7 +222,7 @@ describe("TenantsRoute", () => {
     });
   });
 
-  test("fades and removes provider success notices after a short delay", async () => {
+  test("greys and shimmers during validation, then shows green check and redacted preview on success", async () => {
     vi.useFakeTimers();
     providerStatusData = {
       mailchannelsAccountId: null,
@@ -182,26 +232,68 @@ describe("TenantsRoute", () => {
 
     render(<TenantsRoute />);
 
-    fireEvent.change(screen.getByLabelText("API key"), {
+    const apiKeyInput = screen.getByPlaceholderText("AgentMail API key");
+
+    fireEvent.change(apiKeyInput, {
       target: { value: "agentmail_new_key" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Save AgentMail" }));
 
-    await act(async () => {
-      await flushMicrotasks();
-    });
-    expect(screen.getByText("AgentMail API key saved.")).toBeInTheDocument();
+    expect(apiKeyInput).toHaveClass("is-validating");
+    expect(apiKeyInput).toHaveAttribute("readonly");
 
-    act(() => {
-      vi.advanceTimersByTime(2600);
-    });
+    await advanceTimerAndFlush(100);
 
-    expect(screen.getByText("AgentMail API key saved.")).toHaveClass("is-fading");
+    expect(screen.getByPlaceholderText("AgentMail API key")).toHaveClass("is-verified");
+    expect(screen.getByText("✅")).toBeInTheDocument();
 
-    act(() => {
-      vi.advanceTimersByTime(600);
-    });
+    await advanceTimerAndFlush(1400);
 
-    expect(screen.queryByText("AgentMail API key saved.")).not.toBeInTheDocument();
+    expect(screen.queryByText("✅")).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText("AgentMail API key")).toHaveValue("agentm...");
+    expect(screen.getByPlaceholderText("AgentMail API key")).toHaveClass("configured");
+  });
+
+  test("shows red X for failed validation then falls back to default editable entry", async () => {
+    vi.useFakeTimers();
+    mailchannelsOutcome = "error";
+
+    render(<TenantsRoute />);
+
+    const accountInput = screen.getByPlaceholderText("MailChannels account ID");
+
+    fireEvent.click(accountInput);
+    fireEvent.change(accountInput, { target: { value: "invalid_account" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save MailChannels" }));
+
+    expect(screen.getByPlaceholderText("Enter a new MailChannels account id")).toHaveClass(
+      "is-validating",
+    );
+    expect(screen.getByPlaceholderText("Enter a new MailChannels account id")).toHaveAttribute(
+      "readonly",
+    );
+
+    await advanceTimerAndFlush(100);
+
+    expect(screen.getByPlaceholderText("Enter a new MailChannels account id")).toHaveClass(
+      "is-invalid",
+    );
+    expect(screen.getByText("❌")).toBeInTheDocument();
+
+    await advanceTimerAndFlush(1400);
+
+    expect(screen.queryByText("❌")).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Enter a new MailChannels account id")).toHaveValue("");
+    expect(screen.getByPlaceholderText("Enter a new MailChannels account id")).toHaveAttribute(
+      "placeholder",
+      "Enter a new MailChannels account id",
+    );
+    expect(screen.getByPlaceholderText("Enter a new MailChannels account id")).not.toHaveClass(
+      "configured",
+    );
+    expect(
+      screen.getByPlaceholderText("Enter a new MailChannels account id"),
+    ).not.toHaveAttribute("readonly");
+    expect(screen.getByText(mailchannelsErrorMessage)).toBeInTheDocument();
   });
 });

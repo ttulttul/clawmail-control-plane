@@ -135,6 +135,11 @@ tests/                # unit/integration/component tests
 ```
 
 ## Recent refactors
+- 2026-02-15: added credential validation-first UX for tenant provider connections:
+  - Added provider credential validation hooks in `server/services/provider-credential-validation-service.ts` and enforced validation in `tenants.connectMailchannels` / `tenants.connectAgentmail`.
+  - Added a read-only AgentMail validation probe (`listPods`) to the provider connector interface.
+  - Reworked `src/routes/tenants.tsx` credential flows to show per-input validating shimmer states, inline success (`✅`) and failure (`❌`) overlays, and post-validation transitions to redacted previews or editable re-entry.
+  - Added route-level UI coverage for these validation transitions in `tests/tenants-route.test.tsx`.
 - 2026-02-15: improved tenant credential UX for configured provider connections:
   - Added `tenants.providerStatus` query to return redacted credential previews (prefix + ellipses) for MailChannels and AgentMail.
   - Updated `src/routes/tenants.tsx` to show grey read-only preview fields that switch to replacement mode when clicked.

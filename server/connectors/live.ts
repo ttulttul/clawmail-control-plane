@@ -25,6 +25,10 @@ function ensureOk(
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 export class LiveMailChannelsConnector implements MailChannelsConnector {
   public constructor(private readonly baseUrl: string) {}
 
@@ -228,6 +232,32 @@ export class LiveAgentMailConnector implements AgentMailConnector {
     }
 
     return JSON.parse(text) as T;
+  }
+
+  async listPods(input: { apiKey: string }): Promise<Array<{ podId: string }>> {
+    const response = await this.request<unknown>(
+      "/pods",
+      { method: "GET" },
+      input.apiKey,
+    );
+
+    const podEntries = Array.isArray(response)
+      ? response
+      : isRecord(response) && Array.isArray(response.pods)
+        ? response.pods
+        : [];
+
+    const pods: Array<{ podId: string }> = [];
+
+    for (const pod of podEntries) {
+      if (!isRecord(pod) || typeof pod.id !== "string") {
+        continue;
+      }
+
+      pods.push({ podId: pod.id });
+    }
+
+    return pods;
   }
 
   async ensurePod(input: { apiKey: string; name: string }): Promise<AgentmailPod> {
