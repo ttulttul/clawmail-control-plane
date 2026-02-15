@@ -1,6 +1,10 @@
 import { useMemo, useState } from "react";
 
 import { formatAuthErrorMessage } from "../lib/auth-errors";
+import {
+  type AuthMode,
+  getAuthSubmitDisabledReason,
+} from "../lib/auth-form";
 import { trpc } from "../lib/trpc";
 
 type OAuthProvider = "github" | "google";
@@ -25,55 +29,108 @@ const oauthErrorMessages: Record<string, string> = {
   oauth_callback_failed: "SSO sign-in failed. Please try again.",
 };
 
+function readOAuthError(): string | null {
+  const authErrorCode = new URLSearchParams(window.location.search).get("authError");
+  if (!authErrorCode) {
+    return null;
+  }
+
+  return oauthErrorMessages[authErrorCode] ?? "SSO sign-in failed. Please try again.";
+}
+
+function removeOAuthErrorFromUrl(): void {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("authError");
+  const nextValue = `${url.pathname}${url.search}${url.hash}`;
+  window.history.replaceState(null, "", nextValue);
+}
+
+function launchOAuthLogin(provider: OAuthProvider): void {
+  removeOAuthErrorFromUrl();
+  const oauthStartUrl = new URL(`/auth/oauth/${provider}/start`, window.location.origin);
+  oauthStartUrl.searchParams.set(
+    "next",
+    `${window.location.pathname}${window.location.search}`,
+  );
+  window.location.assign(oauthStartUrl.toString());
+}
+
 export function AuthGate() {
   const utils = trpc.useUtils();
+  const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [tenantName, setTenantName] = useState("");
-  const oauthErrorMessage = useMemo(() => {
-    const authError = new URLSearchParams(window.location.search).get("authError");
-    if (!authError) {
-      return null;
-    }
-
-    return oauthErrorMessages[authError] ?? "SSO sign-in failed. Please try again.";
-  }, []);
   const [showPassword, setShowPassword] = useState(false);
+  const [oauthErrorMessage, setOauthErrorMessage] = useState<string | null>(() =>
+    readOAuthError(),
+  );
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const login = trpc.auth.login.useMutation({
+    onMutate: () => {
+      setSuccessMessage(null);
+    },
     onSuccess: async () => {
+      setSuccessMessage("Signed in successfully. Redirecting to your workspace...");
       await utils.auth.me.invalidate();
       await utils.tenants.list.invalidate();
     },
   });
 
   const register = trpc.auth.register.useMutation({
-    onSuccess: async () => {
+    onMutate: () => {
+      setSuccessMessage(null);
+    },
+    onSuccess: async (_, input) => {
+      const tenantLabel =
+        input.tenantName && input.tenantName.trim().length > 0
+          ? ` and created tenant "${input.tenantName.trim()}"`
+          : "";
+      setSuccessMessage(`Account created${tenantLabel}. Redirecting to your workspace...`);
       await utils.auth.me.invalidate();
       await utils.tenants.list.invalidate();
     },
   });
 
-const launchOAuthLogin = (provider: OAuthProvider): void => {
-    const searchParams = new URLSearchParams(window.location.search);
-    searchParams.delete("authError");
-    const cleanSearch = searchParams.toString();
-    const nextPath = cleanSearch
-      ? `${window.location.pathname}?${cleanSearch}`
-      : window.location.pathname;
+  const submitDisabledReason = getAuthSubmitDisabledReason(mode, {
+    email,
+    password,
+    tenantName,
+  });
+  const isSubmitting = login.isPending || register.isPending;
+  const pendingMessage = login.isPending
+    ? "Signing in..."
+    : register.isPending
+      ? "Creating account..."
+      : null;
 
-    const oauthStartUrl = new URL(
-      `/auth/oauth/${provider}/start`,
-      window.location.origin,
-    );
-    oauthStartUrl.searchParams.set("next", nextPath);
-    window.location.assign(oauthStartUrl.toString());
-  };
-
-  // Merge error sources: login, register, or oauth params
   const rawAuthError =
     login.error?.message ?? register.error?.message ?? oauthErrorMessage ?? null;
-  const authErrorMessages = rawAuthError ? formatAuthErrorMessage(rawAuthError) : [];
+  const authErrorMessages = useMemo(
+    () => (rawAuthError ? formatAuthErrorMessage(rawAuthError) : []),
+    [rawAuthError],
+  );
+
+  function submitAuthForm(): void {
+    if (submitDisabledReason) {
+      return;
+    }
+
+    removeOAuthErrorFromUrl();
+    setOauthErrorMessage(null);
+
+    if (mode === "login") {
+      login.mutate({ email: email.trim(), password });
+      return;
+    }
+
+    register.mutate({
+      email: email.trim(),
+      password,
+      tenantName: tenantName.trim(),
+    });
+  }
 
   return (
     <section className="auth-shell">
@@ -95,17 +152,16 @@ const launchOAuthLogin = (provider: OAuthProvider): void => {
             CM
           </div>
           <p className="auth-kicker">Secure Access</p>
-          <h1>Log in to your workspace</h1>
+          <h1>Access your workspace</h1>
           <p className="muted-copy">
-            Manage tenant provisioning, limits, webhook delivery, and agent gateway
-            operations.
+            Operate tenants, monitor delivery, and manage agent gateway controls.
           </p>
 
-          {/* SSO Buttons injected here */}
-          <div className="button-row">
+          <div className="auth-sso-grid">
             <button
               type="button"
               className="sso-button"
+              disabled={isSubmitting}
               onClick={() => launchOAuthLogin("google")}
             >
               Continue with Google
@@ -113,19 +169,52 @@ const launchOAuthLogin = (provider: OAuthProvider): void => {
             <button
               type="button"
               className="sso-button"
+              disabled={isSubmitting}
               onClick={() => launchOAuthLogin("github")}
             >
               Continue with GitHub
             </button>
           </div>
-          <p className="muted-text" style={{ textAlign: "center", margin: "1rem 0" }}>
-            Or use your local email and password account.
-          </p>
 
-          <div className="auth-form">
+          <p className="muted-text centered-text">Or use your local email and password.</p>
+
+          <div
+            className="mode-toggle"
+            role="tablist"
+            aria-label="Authentication mode"
+          >
+            <button
+              type="button"
+              role="tab"
+              className={`mode-toggle-item ${mode === "login" ? "active" : ""}`}
+              aria-selected={mode === "login"}
+              onClick={() => setMode("login")}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              role="tab"
+              className={`mode-toggle-item ${mode === "register" ? "active" : ""}`}
+              aria-selected={mode === "register"}
+              onClick={() => setMode("register")}
+            >
+              Register
+            </button>
+          </div>
+
+          <form
+            className="auth-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              submitAuthForm();
+            }}
+          >
             <label>
               Email
               <input
+                autoComplete="email"
+                inputMode="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="you@example.com"
@@ -135,10 +224,15 @@ const launchOAuthLogin = (provider: OAuthProvider): void => {
               Password
               <div className="input-with-action">
                 <input
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Enter your password"
+                  placeholder={
+                    mode === "register"
+                      ? "Use at least 12 characters"
+                      : "Enter your password"
+                  }
                 />
                 <button
                   className="auth-eye-toggle"
@@ -149,53 +243,73 @@ const launchOAuthLogin = (provider: OAuthProvider): void => {
                 </button>
               </div>
             </label>
-            <label>
-              Tenant name (register only)
-              <input
-                value={tenantName}
-                onChange={(event) => setTenantName(event.target.value)}
-                placeholder="acme-mail"
-              />
-            </label>
-          </div>
-
-          <div className="button-row">
-            <button
-              disabled={login.isPending}
-              onClick={() => login.mutate({ email, password })}
-              type="button"
-            >
-              {login.isPending ? "Logging in..." : "Log In"}
+            {mode === "register" && (
+              <label>
+                Tenant name
+                <input
+                  value={tenantName}
+                  onChange={(event) => setTenantName(event.target.value)}
+                  placeholder="acme-mail"
+                />
+              </label>
+            )}
+            {submitDisabledReason && (
+              <p className="hint-message" role="status" aria-live="polite">
+                {submitDisabledReason}
+              </p>
+            )}
+            {pendingMessage && (
+              <p className="status-pill info" role="status" aria-live="polite">
+                {pendingMessage}
+              </p>
+            )}
+            {successMessage && (
+              <p className="status-pill success" role="status" aria-live="polite">
+                {successMessage}
+              </p>
+            )}
+            <button type="submit" disabled={isSubmitting || submitDisabledReason !== null}>
+              {mode === "login"
+                ? login.isPending
+                  ? "Signing In..."
+                  : "Sign In"
+                : register.isPending
+                  ? "Creating Account..."
+                  : "Create Account"}
             </button>
-            <button
-              className="button-secondary"
-              disabled={register.isPending}
-              onClick={() => register.mutate({ email, password, tenantName })}
-              type="button"
-            >
-              {register.isPending ? "Registering..." : "Register"}
-            </button>
-          </div>
-
-          <p className="auth-footer">
-            New workspace setup: register with a tenant name, then configure providers from
-            the Tenants page.
-          </p>
+          </form>
 
           {authErrorMessages.length > 0 && (
             <div className="error-box" role="alert">
-              <p>Request failed:</p>
+              <p>We could not complete this request:</p>
               <ul className="error-list">
                 {authErrorMessages.map((message) => (
                   <li key={message}>{message}</li>
                 ))}
               </ul>
+              <div className="status-actions">
+                <button
+                  type="button"
+                  className="button-secondary"
+                  onClick={() => {
+                    removeOAuthErrorFromUrl();
+                    setOauthErrorMessage(null);
+                    login.reset();
+                    register.reset();
+                  }}
+                >
+                  Dismiss
+                </button>
+              </div>
             </div>
           )}
+
+          <p className="auth-footer">
+            If you are new here, register your account first, then connect providers from
+            the Tenants page.
+          </p>
         </article>
       </div>
-    </section>
-  );
     </section>
   );
 }

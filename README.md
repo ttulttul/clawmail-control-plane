@@ -32,6 +32,14 @@ This project exists to put a strict control plane between agents and email provi
 - Auth: Lucia session auth + optional Google/GitHub OAuth
 - Tests: Vitest + Testing Library
 
+## UX Standards
+The operator UI follows Nielsen heuristics and *The Design of Everyday Things* principles:
+- Visibility of system status: async actions show loading, success, and failure states.
+- Error prevention and recovery: destructive actions are confirmed; errors include retry paths.
+- Recognition over recall: forms include inline guidance and disable invalid actions early.
+- User control: users can clear inputs, dismiss status states, and retry failed queries.
+- Accessibility: focusable controls, semantic labels, and high-contrast status indicators.
+
 ## Quick Start
 ### Core concepts
 - `Tenant`: security and billing boundary for a team/workspace.
