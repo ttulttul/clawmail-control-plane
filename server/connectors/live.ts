@@ -52,6 +52,10 @@ export class LiveMailChannelsConnector implements MailChannelsConnector {
     return JSON.parse(text) as T;
   }
 
+  async validateCredentials(input: { parentApiKey: string }): Promise<void> {
+    await this.request("/sub-account", { method: "GET" }, input.parentApiKey);
+  }
+
   async createSubaccount(input: { handle: string; parentApiKey: string }): Promise<void> {
     await this.request("/sub-account", {
       method: "POST",
@@ -228,6 +232,10 @@ export class LiveAgentMailConnector implements AgentMailConnector {
     }
 
     return JSON.parse(text) as T;
+  }
+
+  async validateCredentials(input: { apiKey: string }): Promise<void> {
+    await this.request("/pods", { method: "GET" }, input.apiKey);
   }
 
   async ensurePod(input: { apiKey: string; name: string }): Promise<AgentmailPod> {

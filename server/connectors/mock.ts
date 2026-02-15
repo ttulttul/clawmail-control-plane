@@ -19,6 +19,10 @@ function redactKey(value: string): string {
 }
 
 export class MockMailChannelsConnector implements MailChannelsConnector {
+  async validateCredentials(): Promise<void> {
+    return Promise.resolve();
+  }
+
   async createSubaccount(): Promise<void> {
     return Promise.resolve();
   }
@@ -69,6 +73,10 @@ export class MockMailChannelsConnector implements MailChannelsConnector {
 }
 
 export class MockAgentMailConnector implements AgentMailConnector {
+  async validateCredentials(): Promise<void> {
+    return Promise.resolve();
+  }
+
   async ensurePod(input: { name: string }): Promise<AgentmailPod> {
     return { podId: `pod_${input.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}` };
   }

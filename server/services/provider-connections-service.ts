@@ -5,10 +5,45 @@ import {
   agentmailConnections,
   mailchannelsConnections,
 } from "../../drizzle/schema.js";
+import { createProviderConnectors } from "../connectors/factory.js";
+import type { AgentMailConnector, MailChannelsConnector } from "../connectors/types.js";
 import { decryptSecret, encryptSecret } from "../lib/crypto.js";
 import type { DatabaseClient } from "../lib/db.js";
 import { createId } from "../lib/id.js";
 import { safeJsonStringify } from "../lib/json-codec.js";
+import { withProviderErrorMapping } from "./provider-error-mapper.js";
+
+const connectors = createProviderConnectors();
+
+export async function validateMailchannelsConnectionCredentials(
+  input: {
+    parentApiKey: string;
+  },
+  connector: Pick<MailChannelsConnector, "validateCredentials"> = connectors.mailchannels,
+): Promise<void> {
+  await withProviderErrorMapping(
+    () =>
+      connector.validateCredentials({
+        parentApiKey: input.parentApiKey,
+      }),
+    "Failed to validate MailChannels credentials.",
+  );
+}
+
+export async function validateAgentmailConnectionCredentials(
+  input: {
+    apiKey: string;
+  },
+  connector: Pick<AgentMailConnector, "validateCredentials"> = connectors.agentmail,
+): Promise<void> {
+  await withProviderErrorMapping(
+    () =>
+      connector.validateCredentials({
+        apiKey: input.apiKey,
+      }),
+    "Failed to validate AgentMail credentials.",
+  );
+}
 
 export async function requireMailchannelsConnection(
   db: DatabaseClient,
@@ -61,6 +96,10 @@ export async function saveMailchannelsConnection(
     webhookEndpointConfig?: Record<string, unknown>;
   },
 ): Promise<void> {
+  await validateMailchannelsConnectionCredentials({
+    parentApiKey: input.parentApiKey,
+  });
+
   const existing = await db.query.mailchannelsConnections.findFirst({
     where: eq(mailchannelsConnections.tenantId, input.tenantId),
   });
@@ -100,6 +139,10 @@ export async function saveAgentmailConnection(
     defaultPodId?: string;
   },
 ): Promise<void> {
+  await validateAgentmailConnectionCredentials({
+    apiKey: input.apiKey,
+  });
+
   const existing = await db.query.agentmailConnections.findFirst({
     where: eq(agentmailConnections.tenantId, input.tenantId),
   });

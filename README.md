@@ -135,6 +135,11 @@ tests/                # unit/integration/component tests
 ```
 
 ## Recent refactors
+- 2026-02-15: validate provider credentials during connection setup:
+  - Added `validateCredentials` methods to MailChannels and AgentMail connector interfaces with live and mock implementations
+  - `saveMailchannelsConnection` and `saveAgentmailConnection` now verify credentials before persisting encrypted secrets
+  - Updated provider connection status messaging in `src/routes/tenants.tsx` to indicate validation is part of the save flow
+  - Added unit coverage in `tests/provider-connection-credentials.test.ts`
 - 2026-02-15: split provider orchestration into focused services:
   - `server/services/provider-connections-service.ts`
   - `server/services/mailchannels-provisioning-service.ts`
