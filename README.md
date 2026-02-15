@@ -140,6 +140,7 @@ tests/                # unit/integration/component tests
   - Validation now performs direct provider API calls before persistence:
     - MailChannels parent key via sub-account listing (`GET /sub-account`)
     - AgentMail API key via pod listing (`GET /pods`)
+  - Validation uses live provider connectors in non-test runtime so invalid real credentials fail validation even if provisioning mode is otherwise mocked.
   - Reworked `src/routes/tenants.tsx` credential flows to show per-input validating shimmer states, inline success (`✅`) and failure (`❌`) overlays, and post-validation transitions to redacted previews or editable re-entry.
   - Added route-level UI coverage for these validation transitions in `tests/tenants-route.test.tsx`.
 - 2026-02-15: improved tenant credential UX for configured provider connections:

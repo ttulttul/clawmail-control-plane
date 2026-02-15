@@ -1,9 +1,16 @@
 import { TRPCError } from "@trpc/server";
 
+import { LiveAgentMailConnector, LiveMailChannelsConnector } from "../connectors/live.js";
 import { createProviderConnectors } from "../connectors/factory.js";
+import { env } from "../lib/env.js";
 import { withProviderErrorMapping } from "./provider-error-mapper.js";
 
-const connectors = createProviderConnectors();
+const connectors = env.NODE_ENV === "test"
+  ? createProviderConnectors()
+  : {
+    mailchannels: new LiveMailChannelsConnector(env.MAILCHANNELS_BASE_URL),
+    agentmail: new LiveAgentMailConnector(env.AGENTMAIL_BASE_URL),
+  };
 
 function normalizeCredential(value: string): string {
   return value.trim();
