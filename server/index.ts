@@ -8,6 +8,7 @@ import { requestContextMiddleware } from "./middleware/request-context.js";
 import { requireAgentAuth } from "./middleware/agent-auth.js";
 import type { AppVariables } from "./types/hono.js";
 import { webhookRouter } from "./routes/webhooks.js";
+import { oauthRouter } from "./routes/oauth.js";
 import { agentRouter } from "./agent/routes.js";
 import { env } from "./lib/env.js";
 import { startJobScheduler } from "./jobs/scheduler.js";
@@ -57,6 +58,7 @@ app.all("/trpc/*", async (c) => {
 });
 
 app.route("/webhooks", webhookRouter);
+app.route("/auth/oauth", oauthRouter);
 app.use("/agent/*", requireAgentAuth);
 app.route("/agent", agentRouter);
 

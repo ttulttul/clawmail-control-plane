@@ -123,6 +123,17 @@ table {
   align-items: center;
 }
 
+.sso-button {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+
+.muted-text {
+  margin: 0.5rem 0 0.75rem;
+  color: var(--muted);
+}
+
 .form-grid {
   display: grid;
   gap: 0.75rem;

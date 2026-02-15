@@ -6,6 +6,11 @@ const envSchema = z.object({
     .default("development"),
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.string().default("./data/clawmail.db"),
+  AUTH_PUBLIC_URL: z.string().url().optional(),
+  GITHUB_CLIENT_ID: z.string().min(1).optional(),
+  GITHUB_CLIENT_SECRET: z.string().min(1).optional(),
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
   APP_ENCRYPTION_KEY: z.string().optional(),
   CONNECTOR_MODE: z.enum(["mock", "live"]).default("mock"),
   MAILCHANNELS_BASE_URL: z
