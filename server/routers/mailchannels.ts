@@ -11,7 +11,7 @@ import {
   suspendSubaccount,
   syncSubaccountUsage,
   validateMailchannelsWebhook,
-} from "../services/provider-service.js";
+} from "../services/mailchannels-provisioning-service.js";
 import { requireTenantMembership } from "../services/tenant-service.js";
 
 const tenantInstanceSchema = z.object({

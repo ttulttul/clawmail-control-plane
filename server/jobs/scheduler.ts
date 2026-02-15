@@ -7,7 +7,7 @@ import { createRequestLogger } from "../lib/logger.js";
 import {
   syncSubaccountUsage,
   validateMailchannelsWebhook,
-} from "../services/provider-service.js";
+} from "../services/mailchannels-provisioning-service.js";
 
 const logger = createRequestLogger("job-scheduler");
 

@@ -9,7 +9,7 @@ import { createId } from "../lib/id.js";
 import type { RequestLogger } from "../lib/logger.js";
 import { enforceSendPolicy } from "../policies/policy-engine.js";
 import { getPolicyForInstance, requireInstance } from "./instance-service.js";
-import { getInstanceProviderCredentials } from "./provider-service.js";
+import { getInstanceProviderCredentials } from "./provider-credentials-service.js";
 
 const connectors = createProviderConnectors();
 

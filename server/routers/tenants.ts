@@ -5,7 +5,7 @@ import { recordAuditEvent } from "../services/audit-service.js";
 import {
   saveAgentmailConnection,
   saveMailchannelsConnection,
-} from "../services/provider-service.js";
+} from "../services/provider-connections-service.js";
 import {
   createTenantForUser,
   listTenantsForUser,

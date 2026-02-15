@@ -56,6 +56,15 @@ drizzle/              # schema + generated migrations
 tests/                # unit/integration/component tests
 ```
 
+## Recent refactors
+- 2026-02-15: split provider orchestration into focused services:
+  - `server/services/provider-connections-service.ts`
+  - `server/services/mailchannels-provisioning-service.ts`
+  - `server/services/agentmail-provisioning-service.ts`
+  - `server/services/provider-credentials-service.ts`
+  - `server/services/provider-service.ts` now acts as a compatibility barrel
+  - Added integration coverage in `tests/provider-services-refactor.test.ts`
+
 ## Local development
 1. Install dependencies:
 ```bash

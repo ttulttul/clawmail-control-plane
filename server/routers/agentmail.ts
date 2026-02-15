@@ -7,7 +7,7 @@ import {
   createAgentmailInboxForInstance,
   ensurePod,
   listDomainRecords,
-} from "../services/provider-service.js";
+} from "../services/agentmail-provisioning-service.js";
 import { requireTenantMembership } from "../services/tenant-service.js";
 
 export const agentmailRouter = createRouter({
