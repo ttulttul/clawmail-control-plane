@@ -19,6 +19,10 @@ function redactKey(value: string): string {
 }
 
 export class MockMailChannelsConnector implements MailChannelsConnector {
+  async listSubaccounts(): Promise<Array<{ handle: string }>> {
+    return [];
+  }
+
   async createSubaccount(): Promise<void> {
     return Promise.resolve();
   }

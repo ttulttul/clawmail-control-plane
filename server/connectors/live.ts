@@ -29,6 +29,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+function getStringByCandidateKeys(
+  value: Record<string, unknown>,
+  keys: string[],
+): string | null {
+  for (const key of keys) {
+    const candidate = value[key];
+    if (typeof candidate === "string") {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
 export class LiveMailChannelsConnector implements MailChannelsConnector {
   public constructor(private readonly baseUrl: string) {}
 
@@ -54,6 +68,44 @@ export class LiveMailChannelsConnector implements MailChannelsConnector {
     }
 
     return JSON.parse(text) as T;
+  }
+
+  async listSubaccounts(input: { parentApiKey: string }): Promise<Array<{ handle: string }>> {
+    const response = await this.request<unknown>(
+      "/sub-account",
+      { method: "GET" },
+      input.parentApiKey,
+    );
+
+    const entries = Array.isArray(response)
+      ? response
+      : isRecord(response) && Array.isArray(response.sub_accounts)
+        ? response.sub_accounts
+        : isRecord(response) && Array.isArray(response.subaccounts)
+          ? response.subaccounts
+          : [];
+
+    const subaccounts: Array<{ handle: string }> = [];
+
+    for (const entry of entries) {
+      if (!isRecord(entry)) {
+        continue;
+      }
+
+      const handle = getStringByCandidateKeys(entry, [
+        "customer_handle",
+        "handle",
+        "subaccount_handle",
+      ]);
+
+      if (!handle) {
+        continue;
+      }
+
+      subaccounts.push({ handle });
+    }
+
+    return subaccounts;
   }
 
   async createSubaccount(input: { handle: string; parentApiKey: string }): Promise<void> {
@@ -250,11 +302,16 @@ export class LiveAgentMailConnector implements AgentMailConnector {
     const pods: Array<{ podId: string }> = [];
 
     for (const pod of podEntries) {
-      if (!isRecord(pod) || typeof pod.id !== "string") {
+      if (!isRecord(pod)) {
         continue;
       }
 
-      pods.push({ podId: pod.id });
+      const podId = getStringByCandidateKeys(pod, ["pod_id", "id"]);
+      if (!podId) {
+        continue;
+      }
+
+      pods.push({ podId });
     }
 
     return pods;

@@ -26,6 +26,7 @@ export interface MailchannelsSendResponse {
 }
 
 export interface MailChannelsConnector {
+  listSubaccounts: (input: { parentApiKey: string }) => Promise<Array<{ handle: string }>>;
   createSubaccount: (input: MailchannelsCreateSubaccountInput) => Promise<void>;
   setSubaccountLimit: (input: {
     parentApiKey: string;

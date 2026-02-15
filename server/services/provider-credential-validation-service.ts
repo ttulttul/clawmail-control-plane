@@ -42,10 +42,7 @@ export async function validateMailchannelsCredentialUpdate(input: {
   );
 
   await withProviderErrorMapping(
-    () =>
-      connectors.mailchannels.validateWebhook({
-        parentApiKey,
-      }),
+    () => connectors.mailchannels.listSubaccounts({ parentApiKey }),
     "Unable to validate the MailChannels parent API key.",
   );
 }
