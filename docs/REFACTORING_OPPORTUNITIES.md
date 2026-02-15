@@ -2,42 +2,30 @@
 
 Generated: 2026-02-15
 
-1. Split `server/services/provider-service.ts` into focused services.
-- Why: This file currently combines connection persistence, provisioning, key rotation, usage sync, and domain listing, which increases coupling and test complexity.
-- Proposed split:
-  - `provider-connections-service.ts`
-  - `mailchannels-provisioning-service.ts`
-  - `agentmail-provisioning-service.ts`
-  - `provider-credentials-service.ts`
+1. Consolidate authentication entrypoints behind an auth module boundary.
+- Why: Auth logic is currently split across tRPC (`server/routers/auth.ts`) and Hono routes (`server/routes/oauth.ts`), which risks duplicated policy handling and makes auth behavior harder to reason about.
+- Proposed change: Introduce an `server/auth/flows/` layer with shared functions for session creation, redirect/error mapping, and account linking. Keep HTTP adapters thin.
 
-2. Introduce a typed JSON helper layer for serialized columns.
-- Why: Multiple files parse/stringify JSON arrays and objects manually (`requiredHeadersJson`, `recipientsJson`, etc.), duplicating parsing logic.
-- Proposed change: Add small codec utilities (`parseStringArray`, `parseRecord`, `safeJson`) and centralize null/shape handling.
+2. Introduce a synchronous DB transaction helper for account-linking paths.
+- Why: SQLite with `better-sqlite3` is synchronous; async call patterns can accidentally bypass transactional guarantees.
+- Proposed change: Add a small repository helper that executes auth-critical operations (`create-or-link-user`, `session issuance prerequisites`) inside sync-safe transactional boundaries.
 
-3. Consolidate tenant/instance authorization checks into middleware wrappers.
-- Why: Routers repeatedly call `requireTenantMembership` and `requireInstance` in each procedure.
-- Proposed change: Add composable tRPC middlewares (`tenantMemberProcedure`, `tenantOperatorProcedure`, `instanceScopedProcedure`) to reduce repetition and enforce consistent error semantics.
+3. Extract provider API calls from `server/routes/oauth.ts` into typed provider clients.
+- Why: OAuth route currently handles HTTP calls, payload validation, and control flow in one file.
+- Proposed change: Move Google/GitHub fetch and parsing into `server/services/oauth-providers/{google,github}.ts` with typed return contracts and shared error mapping.
 
-4. Formalize connector error mapping.
-- Why: Connector failures currently surface mostly as generic errors from fetch paths.
-- Proposed change: Add provider error mappers that convert provider status/response bodies into `TRPCError` codes (`BAD_REQUEST`, `CONFLICT`, `UNAUTHORIZED`, `TOO_MANY_REQUESTS`).
+4. Replace stringly-typed OAuth error codes with a typed enum map shared by server and UI.
+- Why: Error keys are repeated in route handlers and frontend message maps, which can drift.
+- Proposed change: Export a literal object of error codes from a shared module and consume it from both `server/routes/oauth.ts` and `src/components/auth-gate.tsx`.
 
-5. Break `src/routes/instances.tsx` into smaller components.
-- Why: The page owns creation, provisioning, token rotation, and lifecycle actions in one component.
-- Proposed change:
-  - `InstanceCreateForm`
-  - `InstanceList`
-  - `InstanceActions`
-  - `GatewayTokenPanel`
+5. Split `AuthGate` into local-credentials and SSO subcomponents.
+- Why: `src/components/auth-gate.tsx` now manages local auth form state, OAuth launch logic, and error rendering in one component.
+- Proposed change: Create `AuthGateLocalForm` and `AuthGateSsoButtons`, with a small parent orchestrator for shared errors.
 
-6. Move scheduler job logic into per-job handlers.
-- Why: `server/jobs/scheduler.ts` mixes queue orchestration with job behavior.
-- Proposed change: Keep scheduler generic and move job behavior into `server/jobs/handlers/*`, then register handlers by job type.
+6. Add integration tests for OAuth callback handlers with mocked provider responses.
+- Why: Current tests validate parsing and account linking but not end-to-end callback behavior (state mismatch, cookie handling, redirect semantics).
+- Proposed change: Add route-level tests that exercise `/auth/oauth/:provider/callback` with mocked fetch and assert session cookie + redirect outcomes.
 
-7. Add explicit integration tests for gateway policy enforcement.
-- Why: Current tests cover crypto, tenant boundary, and UI behavior, but not `beforeSend` policy outcomes.
-- Proposed test matrix:
-  - missing required headers
-  - per-minute limit exhaustion
-  - daily cap exceeded
-  - allow/deny domain matching
+7. Plan migration away from deprecated Lucia packages.
+- Why: Current dependency versions emit deprecation warnings during install.
+- Proposed change: Track and execute a phased migration plan to the recommended successor library while preserving session cookie semantics and DB compatibility.
