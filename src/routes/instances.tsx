@@ -1,10 +1,21 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { GatewayTokenPanel } from "../components/instances/gateway-token-panel";
 import { InstanceCreateForm } from "../components/instances/instance-create-form";
 import { InstanceList } from "../components/instances/instance-list";
 import { useActiveTenant } from "../hooks/use-active-tenant";
 import { trpc } from "../lib/trpc";
+
+type NoticeTone = "info" | "success" | "error";
+
+interface RouteNotice {
+  tone: NoticeTone;
+  message: string;
+}
+
+function shouldProceed(message: string): boolean {
+  return window.confirm(message);
+}
 
 export function InstancesRoute() {
   const { activeTenantId } = useActiveTenant();
@@ -13,6 +24,8 @@ export function InstancesRoute() {
   const [username, setUsername] = useState("agent");
   const [limit, setLimit] = useState(1000);
   const [createdToken, setCreatedToken] = useState<string | null>(null);
+  const [pendingActionLabel, setPendingActionLabel] = useState<string | null>(null);
+  const [notice, setNotice] = useState<RouteNotice | null>(null);
 
   const utils = trpc.useUtils();
 
@@ -22,46 +35,138 @@ export function InstancesRoute() {
   );
 
   const createInstance = trpc.instances.create.useMutation({
-    onSuccess: async () => {
+    onMutate: () => {
+      setNotice({ tone: "info", message: "Creating instance..." });
+    },
+    onSuccess: async (_, input) => {
       await utils.instances.list.invalidate();
       setInstanceName("");
+      setNotice({
+        tone: "success",
+        message: `Instance "${input.name}" created.`,
+      });
+    },
+    onError: (error) => {
+      setNotice({ tone: "error", message: error.message });
     },
   });
 
   const provisionSubaccount = trpc.mailchannels.provisionSubaccount.useMutation({
-    onSuccess: async () => {
+    onMutate: (variables) => {
+      setPendingActionLabel(`Provisioning MailChannels for "${variables.instanceId}"...`);
+    },
+    onSuccess: async (_, variables) => {
       await utils.instances.list.invalidate();
       await utils.logs.audit.invalidate();
+      setPendingActionLabel(null);
+      setNotice({
+        tone: "success",
+        message: `MailChannels provisioned for instance "${variables.instanceId}".`,
+      });
+    },
+    onError: (error) => {
+      setPendingActionLabel(null);
+      setNotice({ tone: "error", message: error.message });
     },
   });
 
   const createInbox = trpc.agentmail.createInbox.useMutation({
-    onSuccess: async () => {
+    onMutate: (variables) => {
+      setPendingActionLabel(`Provisioning inbox for "${variables.instanceId}"...`);
+    },
+    onSuccess: async (_, variables) => {
       await utils.logs.audit.invalidate();
+      setPendingActionLabel(null);
+      setNotice({
+        tone: "success",
+        message: `Inbox provisioned for instance "${variables.instanceId}".`,
+      });
+    },
+    onError: (error) => {
+      setPendingActionLabel(null);
+      setNotice({ tone: "error", message: error.message });
     },
   });
 
   const rotateToken = trpc.instances.rotateToken.useMutation({
-    onSuccess: async (response) => {
+    onMutate: (variables) => {
+      setPendingActionLabel(`Rotating gateway token for "${variables.instanceId}"...`);
+    },
+    onSuccess: async (response, variables) => {
       setCreatedToken(response.token);
       await utils.logs.audit.invalidate();
+      setPendingActionLabel(null);
+      setNotice({
+        tone: "success",
+        message: `Gateway token rotated for instance "${variables.instanceId}".`,
+      });
+    },
+    onError: (error) => {
+      setPendingActionLabel(null);
+      setNotice({ tone: "error", message: error.message });
     },
   });
 
   const suspend = trpc.mailchannels.suspendSubaccount.useMutation({
-    onSuccess: async () => {
+    onMutate: (variables) => {
+      setPendingActionLabel(`Suspending sub-account for "${variables.instanceId}"...`);
+    },
+    onSuccess: async (_, variables) => {
       await utils.instances.list.invalidate();
+      setPendingActionLabel(null);
+      setNotice({
+        tone: "success",
+        message: `Sub-account suspended for instance "${variables.instanceId}".`,
+      });
+    },
+    onError: (error) => {
+      setPendingActionLabel(null);
+      setNotice({ tone: "error", message: error.message });
     },
   });
 
   const activate = trpc.mailchannels.activateSubaccount.useMutation({
-    onSuccess: async () => {
+    onMutate: (variables) => {
+      setPendingActionLabel(`Activating sub-account for "${variables.instanceId}"...`);
+    },
+    onSuccess: async (_, variables) => {
       await utils.instances.list.invalidate();
+      setPendingActionLabel(null);
+      setNotice({
+        tone: "success",
+        message: `Sub-account activated for instance "${variables.instanceId}".`,
+      });
+    },
+    onError: (error) => {
+      setPendingActionLabel(null);
+      setNotice({ tone: "error", message: error.message });
     },
   });
 
+  const actionPending =
+    provisionSubaccount.isPending ||
+    createInbox.isPending ||
+    rotateToken.isPending ||
+    suspend.isPending ||
+    activate.isPending;
+
+  const createDisabledReason = useMemo(() => {
+    if (instanceName.trim().length < 2) {
+      return "Enter an instance name with at least 2 characters.";
+    }
+
+    return null;
+  }, [instanceName]);
+
   if (!activeTenantId) {
-    return <p>Select a tenant to manage instances.</p>;
+    return (
+      <section className="panel">
+        <h2>Select a tenant</h2>
+        <p className="muted-copy">
+          Pick a tenant from the header to manage instances and gateway access.
+        </p>
+      </section>
+    );
   }
 
   const tenantId = activeTenantId;
@@ -69,7 +174,7 @@ export function InstancesRoute() {
   function handleCreateInstance(): void {
     createInstance.mutate({
       tenantId,
-      name: instanceName,
+      name: instanceName.trim(),
       mode: "gateway",
     });
   }
@@ -88,11 +193,19 @@ export function InstancesRoute() {
     createInbox.mutate({
       tenantId,
       instanceId,
-      username,
+      username: username.trim(),
     });
   }
 
-  function handleRotateToken(instanceId: string): void {
+  function handleRotateToken(instanceId: string, instanceNameValue: string): void {
+    if (
+      !shouldProceed(
+        `Rotate token for "${instanceNameValue}"? Existing tokens will stop working.`,
+      )
+    ) {
+      return;
+    }
+
     rotateToken.mutate({
       tenantId,
       instanceId,
@@ -101,7 +214,15 @@ export function InstancesRoute() {
     });
   }
 
-  function handleSuspend(instanceId: string): void {
+  function handleSuspend(instanceId: string, instanceNameValue: string): void {
+    if (
+      !shouldProceed(
+        `Suspend sending for "${instanceNameValue}"? You can re-activate later.`,
+      )
+    ) {
+      return;
+    }
+
     suspend.mutate({
       tenantId,
       instanceId,
@@ -120,13 +241,26 @@ export function InstancesRoute() {
       <InstanceCreateForm
         instanceName={instanceName}
         createPending={createInstance.isPending}
-        onInstanceNameChange={setInstanceName}
+        createDisabledReason={createDisabledReason}
+        notice={notice}
+        onInstanceNameChange={(value) => {
+          setNotice(null);
+          setInstanceName(value);
+        }}
         onCreate={handleCreateInstance}
+        onClear={() => setInstanceName("")}
       />
       <InstanceList
         instances={instances.data}
+        isLoading={instances.isLoading}
+        errorMessage={instances.error?.message ?? null}
+        pendingActionLabel={pendingActionLabel}
+        actionPending={actionPending}
         limit={limit}
         username={username}
+        onRetry={() => {
+          void instances.refetch();
+        }}
         onLimitChange={setLimit}
         onUsernameChange={setUsername}
         onProvisionMailchannels={handleProvisionMailchannels}
@@ -135,7 +269,7 @@ export function InstancesRoute() {
         onSuspend={handleSuspend}
         onActivate={handleActivate}
       />
-      <GatewayTokenPanel token={createdToken} />
+      <GatewayTokenPanel token={createdToken} onHide={() => setCreatedToken(null)} />
     </section>
   );
 }

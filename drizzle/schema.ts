@@ -9,11 +9,36 @@ import {
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
+  passwordHash: text("password_hash"),
   createdAt: integer("created_at")
     .notNull()
     .default(sql`(unixepoch() * 1000)`),
 });
+
+export const oauthAccounts = sqliteTable(
+  "oauth_accounts",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider", { enum: ["github", "google"] }).notNull(),
+    providerUserId: text("provider_user_id").notNull(),
+    createdAt: integer("created_at")
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (table) => ({
+    providerUserUnique: uniqueIndex("oauth_accounts_provider_user_idx").on(
+      table.provider,
+      table.providerUserId,
+    ),
+    providerUserPerUserUnique: uniqueIndex("oauth_accounts_provider_owner_idx").on(
+      table.provider,
+      table.userId,
+    ),
+  }),
+);
 
 export const sessions = sqliteTable("sessions", {
   id: text("id").primaryKey(),

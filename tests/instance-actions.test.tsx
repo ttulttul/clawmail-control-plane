@@ -14,6 +14,9 @@ describe("InstanceActions", () => {
     render(
       <InstanceActions
         instanceId="instance-123"
+        instanceName="Instance Alpha"
+        actionPending={false}
+        usernameValid={true}
         onProvisionMailchannels={onProvisionMailchannels}
         onProvisionInbox={onProvisionInbox}
         onRotateGatewayToken={onRotateGatewayToken}
@@ -30,8 +33,8 @@ describe("InstanceActions", () => {
 
     expect(onProvisionMailchannels).toHaveBeenCalledWith("instance-123");
     expect(onProvisionInbox).toHaveBeenCalledWith("instance-123");
-    expect(onRotateGatewayToken).toHaveBeenCalledWith("instance-123");
-    expect(onSuspend).toHaveBeenCalledWith("instance-123");
+    expect(onRotateGatewayToken).toHaveBeenCalledWith("instance-123", "Instance Alpha");
+    expect(onSuspend).toHaveBeenCalledWith("instance-123", "Instance Alpha");
     expect(onActivate).toHaveBeenCalledWith("instance-123");
   });
 });

@@ -2,42 +2,48 @@
 
 Generated: 2026-02-15
 
-1. [x] Split `server/services/provider-service.ts` into focused services. (Completed 2026-02-15)
-- Why: This file currently combines connection persistence, provisioning, key rotation, usage sync, and domain listing, which increases coupling and test complexity.
-- Completed split:
-  - `provider-connections-service.ts`
-  - `mailchannels-provisioning-service.ts`
-  - `agentmail-provisioning-service.ts`
-  - `provider-credentials-service.ts`
+## Current Backlog
+1. [ ] Consolidate authentication entrypoints behind an auth module boundary.
+- Why: Auth logic is split across tRPC (`server/routers/auth.ts`) and Hono routes (`server/routes/oauth.ts`), which risks duplicated policy handling.
+- Proposed change: Introduce `server/auth/flows/` with shared functions for session creation, redirect/error mapping, and account linking.
 
-2. [x] Introduce a typed JSON helper layer for serialized columns. (Completed 2026-02-15)
-- Why: Multiple files parse/stringify JSON arrays and objects manually (`requiredHeadersJson`, `recipientsJson`, etc.), duplicating parsing logic.
-- Completed change: added `server/lib/json-codec.ts` with `parseStringArray`, `parseRecord`, `safeJson`, and `safeJsonStringify`, and replaced duplicated parse/stringify logic in services and routers handling serialized columns.
+2. [ ] Introduce a synchronous DB transaction helper for account-linking paths.
+- Why: SQLite with `better-sqlite3` is synchronous; async call patterns can bypass transactional guarantees.
+- Proposed change: Add a repository helper for auth-critical operations inside sync-safe transactional boundaries.
 
-3. [x] Consolidate tenant/instance authorization checks into middleware wrappers. (Completed 2026-02-15)
-- Why: Routers repeatedly call `requireTenantMembership` and `requireInstance` in each procedure.
-- Completed change: Added composable tRPC wrappers in `server/trpc.ts` (`tenantMemberProcedure`, `tenantOperatorProcedure`, `tenantAdminProcedure`, `instanceScopedProcedure`, `instanceOperatorProcedure`) and migrated routers to remove repeated inline authorization checks.
+3. [ ] Extract provider API calls from `server/routes/oauth.ts` into typed provider clients.
+- Why: OAuth route currently handles HTTP calls, payload validation, and control flow in one file.
+- Proposed change: Move Google/GitHub fetch/parsing into `server/services/oauth-providers/{google,github}.ts` with typed contracts.
 
-4. [x] Formalize connector error mapping. (Completed 2026-02-15)
-- Why: Connector failures currently surface mostly as generic errors from fetch paths.
-- Completed change: Added `ProviderHttpError` and provider error mapping helpers to convert connector HTTP failures into typed `TRPCError` codes (`BAD_REQUEST`, `CONFLICT`, `UNAUTHORIZED`, `TOO_MANY_REQUESTS`, plus scoped fallbacks), and applied mapping across MailChannels and AgentMail call paths.
+4. [ ] Replace stringly-typed OAuth error codes with a typed enum map shared by server and UI.
+- Why: Error keys are repeated in route handlers and frontend message maps.
+- Proposed change: Export a literal error-code map consumed by `server/routes/oauth.ts` and `src/components/auth-gate.tsx`.
 
-5. [x] Break `src/routes/instances.tsx` into smaller components. (Completed 2026-02-15)
-- Why: The page owns creation, provisioning, token rotation, and lifecycle actions in one component.
-- Completed split:
-  - `InstanceCreateForm`
-  - `InstanceList`
-  - `InstanceActions`
-  - `GatewayTokenPanel`
+5. [ ] Split `AuthGate` into local-credentials and SSO subcomponents.
+- Why: `src/components/auth-gate.tsx` manages local auth form state, OAuth launch logic, and error rendering together.
+- Proposed change: Create `AuthGateLocalForm` and `AuthGateSsoButtons` with a small parent orchestrator.
 
-6. [x] Move scheduler job logic into per-job handlers. (Completed 2026-02-15)
-- Why: `server/jobs/scheduler.ts` mixes queue orchestration with job behavior.
-- Completed change: Added `server/jobs/handlers/*` with a typed handler registry and moved `sync-usage`/`validate-webhooks` behavior out of `server/jobs/scheduler.ts`, leaving scheduler focused on queue orchestration.
+6. [ ] Add integration tests for OAuth callback handlers with mocked provider responses.
+- Why: Current tests validate parsing/account linking but not callback end-to-end behavior.
+- Proposed change: Add route-level tests for `/auth/oauth/:provider/callback` with mocked fetch and cookie/redirect assertions.
 
-7. [x] Add explicit integration tests for gateway policy enforcement. (Completed 2026-02-15)
-- Why: Current tests cover crypto, tenant boundary, and UI behavior, but not `beforeSend` policy outcomes.
-- Completed test matrix (see `tests/gateway-policy-enforcement.test.ts`):
-  - missing required headers
-  - per-minute limit exhaustion
-  - daily cap exceeded
-  - allow/deny domain matching
+7. [ ] Plan migration away from deprecated Lucia packages.
+- Why: Current dependency versions emit deprecation warnings during install.
+- Proposed change: Track and execute a phased migration plan that preserves cookie semantics and DB compatibility.
+
+8. [ ] Extract shared AgentMail inbox access resolution from `server/services/gateway-service.ts`.
+- Why: `listInboxThreads`, `getInboxMessage`, and `replyInboxMessage` duplicate inbox + credential resolution flow.
+- Proposed change: Add `loadInboxAccessOrThrow(db, tenantId, instanceId)` and centralize error mapping.
+
+9. [ ] Add scoped middleware helpers for `/agent` endpoints in `server/agent/routes.ts`.
+- Why: Agent routes repeat auth null checks and scope checks (`send`, `read_inbox`).
+- Proposed change: Introduce reusable guards such as `requireAuthenticatedAgent` and `requireAgentScope("send")`.
+
+## Completed In This Branch
+1. [x] Split provider orchestration into focused modules (`provider-connections`, `mailchannels-provisioning`, `agentmail-provisioning`, `provider-credentials`) and converted `provider-service.ts` to a compatibility barrel.
+2. [x] Introduced typed JSON codecs (`server/lib/json-codec.ts`) and replaced ad hoc parse/stringify calls in policy, token, send-log, audit-log, and domain flows.
+3. [x] Added composable tRPC authorization wrappers (`tenantMemberProcedure`, `tenantOperatorProcedure`, `tenantAdminProcedure`, `instanceScopedProcedure`, `instanceOperatorProcedure`) and removed repeated inline checks from routers.
+4. [x] Added provider error mapping (`ProviderHttpError` + `withProviderErrorMapping`) to convert provider HTTP failures into explicit `TRPCError` codes.
+5. [x] Split `src/routes/instances.tsx` responsibilities into focused components (`InstanceCreateForm`, `InstanceList`, `InstanceActions`, `GatewayTokenPanel`) while preserving UX feedback patterns.
+6. [x] Moved scheduler job behavior into typed handler modules under `server/jobs/handlers/*`, keeping `server/jobs/scheduler.ts` focused on queue orchestration.
+7. [x] Added explicit gateway policy integration coverage for required headers, per-minute limits, daily caps, and allow/deny domain matching.
