@@ -34,7 +34,7 @@ export function TenantsRoute() {
       await utils.logs.audit.invalidate();
       setMailchannelsAccountId("");
       setMailchannelsApiKey("");
-      setProviderSuccess("MailChannels credentials saved.");
+      setProviderSuccess("MailChannels credentials verified and saved.");
     },
   });
 
@@ -45,7 +45,7 @@ export function TenantsRoute() {
     onSuccess: async () => {
       await utils.logs.audit.invalidate();
       setAgentmailApiKey("");
-      setProviderSuccess("AgentMail API key saved.");
+      setProviderSuccess("AgentMail API key verified and saved.");
     },
   });
 
@@ -163,12 +163,12 @@ export function TenantsRoute() {
         {providerDisabledReason && <p className="hint-message">{providerDisabledReason}</p>}
         {connectMailchannels.isPending && (
           <p className="status-pill info" role="status" aria-live="polite">
-            Saving MailChannels credentials...
+            Validating and saving MailChannels credentials...
           </p>
         )}
         {connectAgentmail.isPending && (
           <p className="status-pill info" role="status" aria-live="polite">
-            Saving AgentMail credentials...
+            Validating and saving AgentMail credentials...
           </p>
         )}
         {providerSuccess && (

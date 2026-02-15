@@ -26,6 +26,9 @@ export interface MailchannelsSendResponse {
 }
 
 export interface MailChannelsConnector {
+  validateCredentials: (input: {
+    parentApiKey: string;
+  }) => Promise<void>;
   createSubaccount: (input: MailchannelsCreateSubaccountInput) => Promise<void>;
   setSubaccountLimit: (input: {
     parentApiKey: string;
@@ -80,6 +83,9 @@ export interface AgentmailInbox {
 }
 
 export interface AgentMailConnector {
+  validateCredentials: (input: {
+    apiKey: string;
+  }) => Promise<void>;
   ensurePod: (input: {
     apiKey: string;
     name: string;
