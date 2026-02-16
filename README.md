@@ -5,8 +5,9 @@
 Self-hostable email control plane for OpenClaw fleets with tenant isolation, per-instance blast-radius controls, centralized webhook ingestion, and gateway-mode API access.
 
 ## Core Concepts
-- `Tenant`: The top-level isolation boundary. Provider credentials, instances, policies, inboxes, logs, and audit events are all scoped to a tenant.
-- `User Membership`: A user belongs to one or more tenants with a role (`viewer`, `operator`, `admin`, `owner`) that controls what actions they can perform.
+- `User`: Represents a human user who needs to control or view bot access to email resources.
+- `Tenant`: The top-level isolation boundary, controlled by a `User`. Provider credentials, instances, policies, inboxes, logs, and audit events are all scoped to a `Tenant`.
+- `User Membership`: A `User` belongs to one or more tenants with a role (`viewer`, `operator`, `admin`, `owner`) that controls what actions they can perform.
 - `Instance`: A logical OpenClaw agent identity inside a tenant. Instances have lifecycle state (`active`, `suspended`, `deprovisioned`) and mode (`gateway` or `direct`).
 - `Instance Policy`: Per-instance guardrails for outbound mail (recipient limits, required headers, allow/deny domain lists, rate limits, and daily caps).
 - `Gateway Token`: A rotatable, instance-scoped secret used by agents to call `/agent/*` endpoints. Only the token hash is stored server-side.
