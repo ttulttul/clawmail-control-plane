@@ -20,6 +20,11 @@ Self-hostable email control plane for OpenClaw fleets with tenant isolation, per
 - `Webhook Event`: Provider delivery/inbox events ingested into the control plane, deduplicated, and attached to tenant/instance context when available.
 - `Audit Log`: An immutable operator action trail (for example provisioning, token rotation, policy changes) used for oversight and incident review.
 
+## Relationship Diagram
+![OpenClaw client, tenant, user, and service relationships](docs/images/openclaw-relationships.svg)
+
+This diagram shows the relationships between OpenClaw clients, tenants, users, and services.
+
 ## Why This Exists
 OpenClaw agents become high-risk the moment they can interact with email directly. They can send at machine speed, contact the wrong recipients, leak sensitive context, or continue operating after provider credentials are misconfigured or compromised. Inbound email is equally risky: agents can be manipulated by malicious or unexpected replies, and operators can lose visibility into what influenced agent behavior.
 
