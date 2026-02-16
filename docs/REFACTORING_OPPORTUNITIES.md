@@ -3,27 +3,32 @@
 Generated: 2026-02-16
 
 ## Current Backlog
-1. [ ] Split `src/routes/tenants.tsx` into focused route-level panels.
-- Why: `src/routes/tenants.tsx` is now 800+ lines and mixes tenant selection summary, first-tenant onboarding, and provider credential orchestration.
-- Proposed change: Extract `TenantOverviewPanel`, `FirstTenantCreateForm`, and `ProviderConnectionsPanel` components so the route only composes state and query/mutation wiring.
+1. [ ] Split tenant route orchestration from credential field UI state in `src/routes/tenants.tsx`.
+- Why: The route currently mixes tenant summary/onboarding concerns with provider status hydration, field edit/lock transitions, timeout lifecycle, and mutation success/error handling.
+- Proposed change: Extract `TenantOverviewPanel`, `FirstTenantCreateForm`, and `ProviderCredentialsPanel`; keep `src/routes/tenants.tsx` focused on query/mutation composition.
 
-2. [ ] Consolidate tenant creation UI logic into a shared hook.
+2. [ ] Introduce a typed credential-feedback state machine hook.
+- Why: `src/routes/tenants.tsx` handles repeated `validating -> success/error -> idle` transitions with multiple timeout refs and per-field conditionals.
+- Proposed change: Add `useCredentialFeedbackMachine` to centralize transition timing, cleanup, and per-field updates.
+
+3. [ ] Consolidate tenant creation UI logic into a shared hook.
 - Why: Tenant creation now exists in both `src/components/tenant-selector.tsx` (modal) and `src/routes/tenants.tsx` (first-tenant inline form).
-- Proposed change: Add `src/hooks/use-create-tenant.ts` to centralize mutation wiring, validation, and post-create selection behavior.
+- Proposed change: Add `src/hooks/use-create-tenant.ts` to centralize validation, mutation wiring, cache invalidation, and post-create selection behavior.
 
-3. [ ] Replace provider credential edit state booleans with typed state machines.
-- Why: The route currently uses multiple related booleans (`editing`, `forceEntry`, lock/frozen states) per credential field, which increases impossible-state risk.
-- Proposed change: Use discriminated unions per field (for example `preview | editing | validating | rejected | accepted`) and derive rendering from one source of truth.
+4. [ ] Consolidate duplicated HTTP request/parsing logic in live provider connectors.
+- Why: `LiveMailChannelsConnector` and `LiveAgentMailConnector` in `server/connectors/live.ts` each implement similar `fetch -> text -> ensureOk -> parse` behavior.
+- Proposed change: Create a shared typed request helper used by both connectors to reduce divergence risk and simplify error handling updates.
 
-4. [ ] Extract reusable provider credential field components.
-- Why: MailChannels and AgentMail field blocks duplicate input shell, feedback icon logic, edit/restore event handling, and hint rendering.
-- Proposed change: Introduce a `CredentialField` component with typed props for provider-specific messages and mutation payload mapping.
+5. [ ] Decompose `server/services/mailchannels-provisioning-service.ts` into operation-focused modules.
+- Why: Provisioning, limit updates, status toggles, key rotation, usage sync, and webhook validation are all in one file with repeated connection/sub-account lookup patterns.
+- Proposed change: Split into `mailchannels-provisioning/commands.ts`, `mailchannels-provisioning/key-lifecycle.ts`, and `mailchannels-provisioning/sync.ts` with shared lookup helpers.
 
-5. [ ] Break `server/services/mailchannels-provisioning-service.ts` into domain modules.
-- Why: The service is one of the largest backend files and combines connector calls, validation guards, and provisioning orchestration.
-- Proposed change: Split into `mailchannels-subaccounts-service.ts`, `mailchannels-limits-service.ts`, and `mailchannels-keys-service.ts` while keeping the current export surface via a barrel module.
+6. [ ] Add reusable integration-test builders for tenant/provider scenarios.
+- Why: `tests/tenants-route.test.tsx`, `tests/tenant-boundary.test.ts`, and provider-service tests each recreate similar tenant/instance/provider setup boilerplate.
+- Proposed change: Add typed factories under `tests/helpers/fixtures.ts` for tenant, membership, provider connection, and instance records.
 
 ## Completed In This Branch
-1. [x] Moved ongoing tenant creation UX to the workspace header tenant selector (`Create tenant...` modal flow).
-2. [x] Removed duplicate tenant list rendering from `/tenants` and replaced it with selected-tenant summary.
-3. [x] Kept first-tenant onboarding inline on `/tenants` only when no tenants exist.
+1. [x] Restored live provider credential validation behavior for `/tenants` in non-test runtime.
+2. [x] Moved ongoing tenant creation UX to the workspace header tenant selector (`Create tenant...` modal flow).
+3. [x] Removed duplicate tenant list rendering from `/tenants` and replaced it with selected-tenant summary.
+4. [x] Kept first-tenant onboarding inline on `/tenants` only when no tenants exist.

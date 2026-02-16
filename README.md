@@ -20,6 +20,11 @@ Self-hostable email control plane for OpenClaw fleets with tenant isolation, per
 - `Webhook Event`: Provider delivery/inbox events ingested into the control plane, deduplicated, and attached to tenant/instance context when available.
 - `Audit Log`: An immutable operator action trail (for example provisioning, token rotation, policy changes) used for oversight and incident review.
 
+## Relationship Diagram
+![OpenClaw client, tenant, user, and service relationships](docs/images/openclaw-relationships.svg)
+
+This diagram shows the relationships between OpenClaw clients, tenants, users, and services.
+
 ## Why This Exists
 OpenClaw agents become high-risk the moment they can interact with email directly. They can send at machine speed, contact the wrong recipients, leak sensitive context, or continue operating after provider credentials are misconfigured or compromised. Inbound email is equally risky: agents can be manipulated by malicious or unexpected replies, and operators can lose visibility into what influenced agent behavior.
 
@@ -140,6 +145,10 @@ tests/                # unit/integration/component tests
   - Removed duplicated tenant listing from the `/tenants` panel and replaced it with a selected-tenant summary (name + role tag).
   - Kept inline tenant creation in `/tenants` only for first-time setup when no tenants exist.
   - Added UI coverage in `tests/tenant-selector.test.tsx` and `tests/tenants-route.test.tsx`.
+- 2026-02-16: restored live provider credential validation behavior on `/tenants`:
+  - Credential validation now always uses live MailChannels/AgentMail connectors in non-test environments, even when `CONNECTOR_MODE=mock` is used for provisioning flows.
+  - This prevents invalid provider keys from being accepted during tenant connection setup.
+  - Added unit coverage for the environment-based validation connector selection in `tests/provider-connection-credentials.test.ts`.
 - 2026-02-15: moved credential rejection copy into the rejected input field:
   - During failed provider validation, the affected input now displays inline text such as `❌ Credential was rejected by MailChannels.` inside the input itself.
   - Removed separate rejection text rows below inputs to keep feedback scoped to the exact rejected credential field.
