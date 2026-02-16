@@ -2,26 +2,26 @@
 
 Updated: 2026-02-16
 
-1. [ ] Decompose `src/routes/risks.tsx` into focused components and hooks.
-- Why: The file is ~824 lines and mixes risk onboarding, provider credential forms, async feedback timing, and selection state in one route component.
-- Proposed change: Extract `RiskOverviewPanel`, `ProviderConnectionsPanel`, and a `useCredentialValidationFeedback` hook so the route composes behavior instead of owning every state transition.
+1. [ ] Split `src/routes/risks.tsx` into focused presentation and state layers.
+- Why: The route is large (~824 lines) and currently mixes onboarding, provider credential UX, validation timing, and state-reset orchestration.
+- Proposed change: Extract `RiskOverviewPanel`, `ProviderConnectionsPanel`, and a `useCredentialFeedback` hook so route logic stays composition-focused.
 
-2. [ ] Create a shared credential field primitive for provider forms.
-- Why: MailChannels and AgentMail sections in `src/routes/risks.tsx` repeat similar lock/edit/preview/error UI patterns with near-identical event handling.
-- Proposed change: Add a reusable `CredentialField` component in `src/components/` that handles preview mode, inline validation state, and replace-on-click affordances.
+2. [ ] Introduce a shared credential input component for provider forms.
+- Why: MailChannels and AgentMail sections in `src/routes/risks.tsx` repeat the same preview/edit/lock/feedback behavior with near-duplicate handlers.
+- Proposed change: Add a reusable `CredentialInputField` component under `src/components/` with typed props for tone, lock state, replacement mode, and helper copy.
 
-3. [ ] Split `server/services/provider-connections-service.ts` by provider domain.
-- Why: The service currently contains persistence and validation logic for both MailChannels and AgentMail, which increases branching and coupling.
-- Proposed change: Move provider-specific flows into `mailchannels-connections-service.ts` and `agentmail-connections-service.ts`, and keep the current file as a thin orchestration facade if needed.
+3. [ ] Extract provider connection orchestration by provider domain.
+- Why: `server/services/provider-connections-service.ts` handles both MailChannels and AgentMail persistence + validation paths, increasing coupling and branch complexity.
+- Proposed change: Split into `mailchannels-connections-service.ts` and `agentmail-connections-service.ts`, keeping a thin façade where cross-provider coordination is required.
 
-4. [ ] Replace ad-hoc scope parsing in `server/trpc.ts` with typed procedure factories.
-- Why: Membership and instance scope checks rely on `readInputId` and repeated middleware wiring; this is easy to drift as routers grow.
-- Proposed change: Introduce typed `withRiskScope` and `withInstanceScope` helpers that validate input once (Zod-backed) and annotate procedure context with verified scope IDs.
+4. [ ] Move tRPC scope wiring to typed procedure factories.
+- Why: `server/trpc.ts` still relies on manual `readInputId` extraction and middleware wiring for risk and instance scoping.
+- Proposed change: Introduce Zod-backed helpers like `withRiskScope` and `withInstanceScope` that validate once and enrich context with verified scope IDs.
 
-5. [ ] Consolidate MailChannels subaccount state transitions.
-- Why: `server/services/mailchannels-provisioning-service.ts` repeats DB transaction patterns for activate/suspend/rotate/update operations.
-- Proposed change: Add a small repository module to centralize subaccount + instance status transitions so lifecycle invariants are enforced in one place.
+5. [ ] Consolidate MailChannels subaccount state transitions behind a repository helper.
+- Why: `server/services/mailchannels-provisioning-service.ts` repeats transaction patterns for activate/suspend/rotate/update flows.
+- Proposed change: Create a typed repository module for subaccount lifecycle writes to centralize invariants and reduce duplicate transaction code.
 
-6. [ ] Add shared integration-test fixture builders for risk/provider scenarios.
-- Why: `tests/risks-route.test.tsx`, `tests/risk-boundary.test.ts`, and provider service tests recreate similar setup for users, risks, memberships, and provider credentials.
-- Proposed change: Add typed factories under `tests/helpers/fixtures.ts` for risk membership, instance, and provider connection records.
+6. [ ] Add shared test fixtures for risk/provider/integration setup.
+- Why: Integration tests in `tests/risks-route.test.tsx`, `tests/risk-boundary.test.ts`, and provider service tests repeat setup boilerplate for users, memberships, providers, and instances.
+- Proposed change: Add typed builders under `tests/helpers/fixtures.ts` for risk, membership, provider connections, and instance records.
