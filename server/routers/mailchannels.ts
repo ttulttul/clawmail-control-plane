@@ -2,9 +2,9 @@ import { z } from "zod";
 
 import {
   createRouter,
-  castAdminProcedure,
-  castMemberProcedure,
-  castOperatorProcedure,
+  riskAdminProcedure,
+  riskMemberProcedure,
+  riskOperatorProcedure,
 } from "../trpc.js";
 import { recordAuditEvent } from "../services/audit-service.js";
 import {
@@ -18,15 +18,15 @@ import {
   validateMailchannelsWebhook,
 } from "../services/mailchannels-provisioning-service.js";
 
-const castInstanceSchema = z.object({
-  castId: z.string().uuid(),
+const riskInstanceSchema = z.object({
+  riskId: z.string().uuid(),
   instanceId: z.string().uuid(),
 });
 
 export const mailchannelsRouter = createRouter({
-  provisionSubaccount: castOperatorProcedure
+  provisionSubaccount: riskOperatorProcedure
     .input(
-      castInstanceSchema.extend({
+      riskInstanceSchema.extend({
         limit: z.number().int().min(-1).default(1000),
         suspended: z.boolean().default(false),
         persistDirectKey: z.boolean().default(false),
@@ -37,7 +37,7 @@ export const mailchannelsRouter = createRouter({
 
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
-        castId: input.castId,
+        riskId: input.riskId,
         action: "mailchannels.subaccount.provisioned",
         targetType: "instance",
         targetId: input.instanceId,
@@ -51,13 +51,13 @@ export const mailchannelsRouter = createRouter({
       return provisioned;
     }),
 
-  suspendSubaccount: castOperatorProcedure
-    .input(castInstanceSchema)
+  suspendSubaccount: riskOperatorProcedure
+    .input(riskInstanceSchema)
     .mutation(async ({ ctx, input }) => {
       await suspendSubaccount(ctx.db, input);
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
-        castId: input.castId,
+        riskId: input.riskId,
         action: "mailchannels.subaccount.suspended",
         targetType: "instance",
         targetId: input.instanceId,
@@ -67,13 +67,13 @@ export const mailchannelsRouter = createRouter({
       return { success: true };
     }),
 
-  activateSubaccount: castOperatorProcedure
-    .input(castInstanceSchema)
+  activateSubaccount: riskOperatorProcedure
+    .input(riskInstanceSchema)
     .mutation(async ({ ctx, input }) => {
       await activateSubaccount(ctx.db, input);
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
-        castId: input.castId,
+        riskId: input.riskId,
         action: "mailchannels.subaccount.activated",
         targetType: "instance",
         targetId: input.instanceId,
@@ -83,9 +83,9 @@ export const mailchannelsRouter = createRouter({
       return { success: true };
     }),
 
-  setLimit: castOperatorProcedure
+  setLimit: riskOperatorProcedure
     .input(
-      castInstanceSchema.extend({
+      riskInstanceSchema.extend({
         limit: z.number().int().min(-1),
       }),
     )
@@ -93,7 +93,7 @@ export const mailchannelsRouter = createRouter({
       await setSubaccountLimit(ctx.db, input);
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
-        castId: input.castId,
+        riskId: input.riskId,
         action: "mailchannels.subaccount.limit_set",
         targetType: "instance",
         targetId: input.instanceId,
@@ -103,13 +103,13 @@ export const mailchannelsRouter = createRouter({
       return { success: true };
     }),
 
-  deleteLimit: castOperatorProcedure
-    .input(castInstanceSchema)
+  deleteLimit: riskOperatorProcedure
+    .input(riskInstanceSchema)
     .mutation(async ({ ctx, input }) => {
       await deleteSubaccountLimit(ctx.db, input);
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
-        castId: input.castId,
+        riskId: input.riskId,
         action: "mailchannels.subaccount.limit_deleted",
         targetType: "instance",
         targetId: input.instanceId,
@@ -119,9 +119,9 @@ export const mailchannelsRouter = createRouter({
       return { success: true };
     }),
 
-  rotateSubaccountKey: castOperatorProcedure
+  rotateSubaccountKey: riskOperatorProcedure
     .input(
-      castInstanceSchema.extend({
+      riskInstanceSchema.extend({
         persistDirectKey: z.boolean().default(false),
       }),
     )
@@ -129,7 +129,7 @@ export const mailchannelsRouter = createRouter({
       const rotated = await rotateSubaccountKey(ctx.db, input);
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
-        castId: input.castId,
+        riskId: input.riskId,
         action: "mailchannels.subaccount.key_rotated",
         targetType: "instance",
         targetId: input.instanceId,
@@ -139,17 +139,17 @@ export const mailchannelsRouter = createRouter({
       return rotated;
     }),
 
-  syncUsage: castMemberProcedure
-    .input(castInstanceSchema)
+  syncUsage: riskMemberProcedure
+    .input(riskInstanceSchema)
     .mutation(async ({ ctx, input }) => syncSubaccountUsage(ctx.db, input)),
 
-  validateWebhook: castAdminProcedure
+  validateWebhook: riskAdminProcedure
     .input(
       z.object({
-        castId: z.string().uuid(),
+        riskId: z.string().uuid(),
       }),
     )
     .mutation(async ({ ctx, input }) =>
-      validateMailchannelsWebhook(ctx.db, input.castId),
+      validateMailchannelsWebhook(ctx.db, input.riskId),
     ),
 });

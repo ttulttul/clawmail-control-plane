@@ -3,8 +3,8 @@ import { z } from "zod";
 import {
   createRouter,
   protectedProcedure,
-  castAdminProcedure,
-  castMemberProcedure,
+  riskAdminProcedure,
+  riskMemberProcedure,
 } from "../trpc.js";
 import { recordAuditEvent } from "../services/audit-service.js";
 import {
@@ -13,23 +13,23 @@ import {
   saveMailchannelsConnection,
 } from "../services/provider-connections-service.js";
 import {
-  createCastForUser,
-  listCastsForUser,
-} from "../services/cast-service.js";
+  createRiskForUser,
+  listRisksForUser,
+} from "../services/risk-service.js";
 
-export const castsRouter = createRouter({
+export const risksRouter = createRouter({
   list: protectedProcedure.query(async ({ ctx }) => {
-    return listCastsForUser(ctx.db, ctx.auth.user.id);
+    return listRisksForUser(ctx.db, ctx.auth.user.id);
   }),
 
-  providerStatus: castMemberProcedure
+  providerStatus: riskMemberProcedure
     .input(
       z.object({
-        castId: z.string().uuid(),
+        riskId: z.string().uuid(),
       }),
     )
     .query(async ({ ctx, input }) => {
-      return getProviderCredentialPreviews(ctx.db, input.castId);
+      return getProviderCredentialPreviews(ctx.db, input.riskId);
     }),
 
   create: protectedProcedure
@@ -39,44 +39,44 @@ export const castsRouter = createRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const cast = await createCastForUser(ctx.db, {
+      const risk = await createRiskForUser(ctx.db, {
         userId: ctx.auth.user.id,
         name: input.name,
       });
 
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
-        castId: cast.castId,
-        action: "cast.created",
-        targetType: "cast",
-        targetId: cast.castId,
+        riskId: risk.riskId,
+        action: "risk.created",
+        targetType: "risk",
+        targetId: risk.riskId,
         diff: { name: input.name },
       });
 
-      return cast;
+      return risk;
     }),
 
-  connectMailchannels: castAdminProcedure
+  connectMailchannels: riskAdminProcedure
     .input(
       z.object({
-        castId: z.string().uuid(),
+        riskId: z.string().uuid(),
         accountId: z.string().min(1).optional(),
         parentApiKey: z.string().min(1).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       await saveMailchannelsConnection(ctx.db, {
-        castId: input.castId,
+        riskId: input.riskId,
         mailchannelsAccountId: input.accountId,
         parentApiKey: input.parentApiKey,
       });
 
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
-        castId: input.castId,
+        riskId: input.riskId,
         action: "mailchannels.connection.saved",
         targetType: "mailchannels_connection",
-        targetId: input.castId,
+        targetId: input.riskId,
         diff: {
           accountId: input.accountId ?? null,
           parentApiKeyUpdated: input.parentApiKey ? true : null,
@@ -86,27 +86,27 @@ export const castsRouter = createRouter({
       return { success: true };
     }),
 
-  connectAgentmail: castAdminProcedure
+  connectAgentmail: riskAdminProcedure
     .input(
       z.object({
-        castId: z.string().uuid(),
+        riskId: z.string().uuid(),
         apiKey: z.string().min(1),
         defaultPodId: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       await saveAgentmailConnection(ctx.db, {
-        castId: input.castId,
+        riskId: input.riskId,
         apiKey: input.apiKey,
         defaultPodId: input.defaultPodId,
       });
 
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
-        castId: input.castId,
+        riskId: input.riskId,
         action: "agentmail.connection.saved",
         targetType: "agentmail_connection",
-        targetId: input.castId,
+        targetId: input.riskId,
         diff: { defaultPodId: input.defaultPodId ?? null },
       });
 

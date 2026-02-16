@@ -5,7 +5,7 @@ import { safeJsonStringify } from "../lib/json-codec.js";
 
 export interface AuditEntry {
   actorUserId: string | null;
-  castId: string;
+  riskId: string;
   action: string;
   targetType: string;
   targetId: string;
@@ -19,7 +19,7 @@ export async function recordAuditEvent(
   await db.insert(auditLog).values({
     id: createId(),
     actorUserId: entry.actorUserId,
-    castId: entry.castId,
+    riskId: entry.riskId,
     action: entry.action,
     targetType: entry.targetType,
     targetId: entry.targetId,

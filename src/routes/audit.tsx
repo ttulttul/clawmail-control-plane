@@ -1,4 +1,4 @@
-import { useActiveCast } from "../hooks/use-active-cast";
+import { useActiveRisk } from "../hooks/use-active-risk";
 import { trpc } from "../lib/trpc";
 
 function formatTimestamp(value: string | number): string {
@@ -11,22 +11,22 @@ function formatTimestamp(value: string | number): string {
 }
 
 export function AuditRoute() {
-  const { activeCastId } = useActiveCast();
+  const { activeRiskId } = useActiveRisk();
 
   const audit = trpc.logs.audit.useQuery(
     {
-      castId: activeCastId ?? "",
+      riskId: activeRiskId ?? "",
       limit: 100,
     },
-    { enabled: Boolean(activeCastId) },
+    { enabled: Boolean(activeRiskId) },
   );
 
-  if (!activeCastId) {
+  if (!activeRiskId) {
     return (
       <section className="panel">
-        <h2>Select a Cast 🦀🦀🦀</h2>
+        <h2>Select a Risk 🦞🦞🦞</h2>
         <p className="muted-copy">
-          Choose a cast to inspect the audit timeline.
+          Choose a risk to inspect the audit timeline.
         </p>
       </section>
     );
@@ -78,7 +78,7 @@ export function AuditRoute() {
           {audit.data?.length === 0 && (
             <tr>
               <td colSpan={3} className="empty-message">
-                No audit entries yet for this cast.
+                No audit entries yet for this risk.
               </td>
             </tr>
           )}

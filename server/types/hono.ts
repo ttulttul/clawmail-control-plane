@@ -9,7 +9,7 @@ export interface AuthVariables {
 
 export interface AgentAuthVariables {
   instanceId: string;
-  castId: string;
+  riskId: string;
   scopes: string[];
 }
 

@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
-import { castMemberships, casts } from "../../drizzle/schema.js";
+import { riskMemberships, risks } from "../../drizzle/schema.js";
 import type { DatabaseClient } from "../lib/db.js";
 import { createId } from "../lib/id.js";
 
@@ -13,51 +13,51 @@ const roleRank = {
 } as const;
 
 type Role = keyof typeof roleRank;
-export type CastRole = Role;
+export type RiskRole = Role;
 
-export async function createCastForUser(
+export async function createRiskForUser(
   db: DatabaseClient,
   input: { userId: string; name: string; role?: Role },
-): Promise<{ castId: string }> {
-  const castId = createId();
+): Promise<{ riskId: string }> {
+  const riskId = createId();
   const membershipId = createId();
 
   db.transaction((tx) => {
     tx
-      .insert(casts)
+      .insert(risks)
       .values({
-        id: castId,
+        id: riskId,
         name: input.name,
       })
       .run();
 
     tx
-      .insert(castMemberships)
+      .insert(riskMemberships)
       .values({
         id: membershipId,
-        castId,
+        riskId,
         userId: input.userId,
         role: input.role ?? "owner",
       })
       .run();
   });
 
-  return { castId };
+  return { riskId };
 }
 
-export async function listCastsForUser(
+export async function listRisksForUser(
   db: DatabaseClient,
   userId: string,
 ): Promise<Array<{ id: string; name: string; role: Role }>> {
   const rows = await db
     .select({
-      id: casts.id,
-      name: casts.name,
-      role: castMemberships.role,
+      id: risks.id,
+      name: risks.name,
+      role: riskMemberships.role,
     })
-    .from(castMemberships)
-    .innerJoin(casts, eq(castMemberships.castId, casts.id))
-    .where(eq(castMemberships.userId, userId));
+    .from(riskMemberships)
+    .innerJoin(risks, eq(riskMemberships.riskId, risks.id))
+    .where(eq(riskMemberships.userId, userId));
 
   return rows.map((row) => ({
     id: row.id,
@@ -66,25 +66,25 @@ export async function listCastsForUser(
   }));
 }
 
-export async function requireCastMembership(
+export async function requireRiskMembership(
   db: DatabaseClient,
   input: {
     userId: string;
-    castId: string;
+    riskId: string;
     minimumRole?: Role;
   },
 ): Promise<{ role: Role }> {
-  const membership = await db.query.castMemberships.findFirst({
+  const membership = await db.query.riskMemberships.findFirst({
     where: and(
-      eq(castMemberships.userId, input.userId),
-      eq(castMemberships.castId, input.castId),
+      eq(riskMemberships.userId, input.userId),
+      eq(riskMemberships.riskId, input.riskId),
     ),
   });
 
   if (!membership) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
-      message: "You are not a member of this cast.",
+      message: "You are not a member of this risk.",
     });
   }
 

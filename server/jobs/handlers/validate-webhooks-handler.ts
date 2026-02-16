@@ -7,10 +7,10 @@ export const runValidateWebhooksJob: JobHandler = async ({ db, logger }) => {
 
   for (const connection of connections) {
     try {
-      await validateMailchannelsWebhook(db, connection.castId);
+      await validateMailchannelsWebhook(db, connection.riskId);
     } catch (error) {
-      logger.warn("validate-webhooks job failed for cast", {
-        castId: connection.castId,
+      logger.warn("validate-webhooks job failed for risk", {
+        riskId: connection.riskId,
         error: error instanceof Error ? error.message : "unknown",
       });
     }

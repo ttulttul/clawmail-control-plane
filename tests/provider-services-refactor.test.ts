@@ -12,7 +12,7 @@ interface LoadedModules {
   users: (typeof import("../drizzle/schema"))["users"];
   createId: (typeof import("../server/lib/id"))["createId"];
   hashPassword: (typeof import("../server/lib/password"))["hashPassword"];
-  createCastForUser: (typeof import("../server/services/cast-service"))["createCastForUser"];
+  createRiskForUser: (typeof import("../server/services/risk-service"))["createRiskForUser"];
   createInstance: (typeof import("../server/services/instance-service"))["createInstance"];
   saveMailchannelsConnection: (typeof import("../server/services/provider-connections-service"))["saveMailchannelsConnection"];
   saveAgentmailConnection: (typeof import("../server/services/provider-connections-service"))["saveAgentmailConnection"];
@@ -41,7 +41,7 @@ beforeAll(async () => {
     schemaModule,
     idModule,
     passwordModule,
-    castService,
+    riskService,
     instanceService,
     providerConnectionService,
     mailchannelsProvisioningService,
@@ -52,7 +52,7 @@ beforeAll(async () => {
     import("../drizzle/schema"),
     import("../server/lib/id"),
     import("../server/lib/password"),
-    import("../server/services/cast-service"),
+    import("../server/services/risk-service"),
     import("../server/services/instance-service"),
     import("../server/services/provider-connections-service"),
     import("../server/services/mailchannels-provisioning-service"),
@@ -66,7 +66,7 @@ beforeAll(async () => {
     users: schemaModule.users,
     createId: idModule.createId,
     hashPassword: passwordModule.hashPassword,
-    createCastForUser: castService.createCastForUser,
+    createRiskForUser: riskService.createRiskForUser,
     createInstance: instanceService.createInstance,
     saveMailchannelsConnection: providerConnectionService.saveMailchannelsConnection,
     saveAgentmailConnection: providerConnectionService.saveAgentmailConnection,
@@ -98,30 +98,30 @@ describe("provider service split", () => {
       passwordHash: modules.hashPassword("super-secure-password"),
     });
 
-    const { castId } = await modules.createCastForUser(modules.db, {
+    const { riskId } = await modules.createRiskForUser(modules.db, {
       userId,
-      name: "Cast One",
+      name: "Risk One",
     });
 
     const { instanceId } = await modules.createInstance(modules.db, {
-      castId,
+      riskId,
       name: "Outbound Worker",
       mode: "gateway",
     });
 
     await modules.saveMailchannelsConnection(modules.db, {
-      castId,
+      riskId,
       mailchannelsAccountId: "account_123",
       parentApiKey: "mailchannels_parent_key",
     });
 
     await modules.saveAgentmailConnection(modules.db, {
-      castId,
+      riskId,
       apiKey: "agentmail_api_key",
     });
 
     const provisioned = await modules.provisionMailchannelsSubaccount(modules.db, {
-      castId,
+      riskId,
       instanceId,
       limit: 1000,
       suspended: false,
@@ -129,7 +129,7 @@ describe("provider service split", () => {
     });
 
     const credentials = await modules.getInstanceProviderCredentials(modules.db, {
-      castId,
+      riskId,
       instanceId,
     });
 
@@ -140,31 +140,31 @@ describe("provider service split", () => {
     expect(credentials.encryptedKey).toBeTypeOf("string");
 
     const pod = await modules.ensurePod(modules.db, {
-      castId,
-      podName: "Cast One Pod",
+      riskId,
+      podName: "Risk One Pod",
     });
 
     const createdDomain = await modules.createAgentmailDomain(modules.db, {
-      castId,
+      riskId,
       podId: pod.podId,
       domain: "example.test",
     });
 
     const inbox = await modules.createAgentmailInboxForInstance(modules.db, {
-      castId,
+      riskId,
       instanceId,
       username: "bot",
       domain: "example.test",
     });
 
-    const domains = await modules.listDomainRecords(modules.db, castId);
+    const domains = await modules.listDomainRecords(modules.db, riskId);
     const usage = await modules.syncSubaccountUsage(modules.db, {
-      castId,
+      riskId,
       instanceId,
     });
     const webhookStatus = await modules.validateMailchannelsWebhook(
       modules.db,
-      castId,
+      riskId,
     );
 
     expect(createdDomain.domain).toBe("example.test");

@@ -9,7 +9,7 @@ import { AuditRoute } from "./routes/audit";
 import { DashboardRoute } from "./routes/dashboard";
 import { DomainsRoute } from "./routes/domains";
 import { InstancesRoute } from "./routes/instances";
-import { CastsRoute } from "./routes/casts";
+import { RisksRoute } from "./routes/risks";
 import { WebhooksRoute } from "./routes/webhooks";
 
 const rootRoute = createRootRoute({
@@ -22,10 +22,10 @@ const dashboardRoute = createRoute({
   component: DashboardRoute,
 });
 
-const castsRoute = createRoute({
+const risksRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/casts",
-  component: CastsRoute,
+  path: "/risks",
+  component: RisksRoute,
 });
 
 const instancesRoute = createRoute({
@@ -54,7 +54,7 @@ const auditRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   dashboardRoute,
-  castsRoute,
+  risksRoute,
   instancesRoute,
   domainsRoute,
   webhooksRoute,

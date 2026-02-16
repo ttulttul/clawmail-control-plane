@@ -1,4 +1,4 @@
-import { useActiveCast } from "../hooks/use-active-cast";
+import { useActiveRisk } from "../hooks/use-active-risk";
 import { trpc } from "../lib/trpc";
 
 function formatTimestamp(value: string | number): string {
@@ -11,30 +11,30 @@ function formatTimestamp(value: string | number): string {
 }
 
 export function DashboardRoute() {
-  const { activeCastId } = useActiveCast();
+  const { activeRiskId } = useActiveRisk();
 
   const sends = trpc.logs.sends.useQuery(
     {
-      castId: activeCastId ?? "",
+      riskId: activeRiskId ?? "",
       limit: 10,
     },
-    { enabled: Boolean(activeCastId) },
+    { enabled: Boolean(activeRiskId) },
   );
 
   const events = trpc.logs.events.useQuery(
     {
-      castId: activeCastId ?? "",
+      riskId: activeRiskId ?? "",
       limit: 10,
     },
-    { enabled: Boolean(activeCastId) },
+    { enabled: Boolean(activeRiskId) },
   );
 
   const audit = trpc.logs.audit.useQuery(
     {
-      castId: activeCastId ?? "",
+      riskId: activeRiskId ?? "",
       limit: 10,
     },
-    { enabled: Boolean(activeCastId) },
+    { enabled: Boolean(activeRiskId) },
   );
 
   const isLoading = sends.isLoading || events.isLoading || audit.isLoading;
@@ -42,12 +42,12 @@ export function DashboardRoute() {
     (value): value is string => Boolean(value),
   );
 
-  if (!activeCastId) {
+  if (!activeRiskId) {
     return (
       <section className="panel">
-        <h2>Create a Cast 🦀🦀🦀 to begin</h2>
+        <h2>Create a Risk 🦞🦞🦞 to begin</h2>
         <p className="muted-copy">
-          Pick a cast from the selector or create one from the Casts page to
+          Pick a risk from the selector or create one from the Risks page to
           unlock dashboard metrics.
         </p>
       </section>
@@ -63,7 +63,7 @@ export function DashboardRoute() {
       <header className="overview-head">
         <h2>Overview</h2>
         <p className="muted-copy">
-          Monitor deliverability, webhook traffic, and cast-level operations.
+          Monitor deliverability, webhook traffic, and risk-level operations.
         </p>
         <div className="button-row">
           <button

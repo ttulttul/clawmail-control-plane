@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { useActiveCast } from "../hooks/use-active-cast";
+import { useActiveRisk } from "../hooks/use-active-risk";
 import { trpc } from "../lib/trpc";
 
 type CredentialFieldId =
@@ -14,7 +14,7 @@ type CredentialFeedbackState = Record<CredentialFieldId, CredentialFeedbackTone>
 type CredentialPreviewOverrides = Partial<Record<CredentialFieldId, string | null>>;
 
 interface MailchannelsMutationInput {
-  castId: string;
+  riskId: string;
   accountId?: string;
   parentApiKey?: string;
 }
@@ -110,9 +110,9 @@ function getCredentialInputClass(
   return classNames.join(" ");
 }
 
-export function CastsRoute() {
-  const { activeCastId, setActiveCastId } = useActiveCast();
-  const [castName, setCastName] = useState("");
+export function RisksRoute() {
+  const { activeRiskId, setActiveRiskId } = useActiveRisk();
+  const [riskName, setRiskName] = useState("");
   const [mailchannelsAccountId, setMailchannelsAccountId] = useState("");
   const [mailchannelsApiKey, setMailchannelsApiKey] = useState("");
   const [agentmailApiKey, setAgentmailApiKey] = useState("");
@@ -122,7 +122,7 @@ export function CastsRoute() {
   const [mailchannelsAccountIdForceEntry, setMailchannelsAccountIdForceEntry] = useState(false);
   const [mailchannelsApiKeyForceEntry, setMailchannelsApiKeyForceEntry] = useState(false);
   const [agentmailApiKeyForceEntry, setAgentmailApiKeyForceEntry] = useState(false);
-  const [castSuccess, setCastSuccess] = useState<string | null>(null);
+  const [riskSuccess, setRiskSuccess] = useState<string | null>(null);
   const [credentialFeedback, setCredentialFeedback] = useState<CredentialFeedbackState>(
     INITIAL_FEEDBACK_STATE,
   );
@@ -151,25 +151,25 @@ export function CastsRoute() {
   };
 
   const utils = trpc.useUtils();
-  const casts = trpc.casts.list.useQuery();
-  const providerStatus = trpc.casts.providerStatus.useQuery(
-    { castId: activeCastId ?? "" },
-    { enabled: Boolean(activeCastId) },
+  const risks = trpc.risks.list.useQuery();
+  const providerStatus = trpc.risks.providerStatus.useQuery(
+    { riskId: activeRiskId ?? "" },
+    { enabled: Boolean(activeRiskId) },
   );
 
-  const createCast = trpc.casts.create.useMutation({
+  const createRisk = trpc.risks.create.useMutation({
     onMutate: () => {
-      setCastSuccess(null);
+      setRiskSuccess(null);
     },
     onSuccess: async (result, input) => {
-      await utils.casts.list.invalidate();
-      setActiveCastId(result.castId);
-      setCastName("");
-      setCastSuccess(`Cast "${input.name.trim()}" created.`);
+      await utils.risks.list.invalidate();
+      setActiveRiskId(result.riskId);
+      setRiskName("");
+      setRiskSuccess(`Risk "${input.name.trim()}" created.`);
     },
   });
 
-  const connectMailchannels = trpc.casts.connectMailchannels.useMutation({
+  const connectMailchannels = trpc.risks.connectMailchannels.useMutation({
     onMutate: (input) => {
       const fields = getMailchannelsValidationFields(input);
       clearMailchannelsSettleTimeout();
@@ -182,7 +182,7 @@ export function CastsRoute() {
 
       await Promise.all([
         utils.logs.audit.invalidate(),
-        utils.casts.providerStatus.invalidate({ castId: input.castId }),
+        utils.risks.providerStatus.invalidate({ riskId: input.riskId }),
       ]);
 
       setCredentialFeedback((current) =>
@@ -256,7 +256,7 @@ export function CastsRoute() {
     },
   });
 
-  const connectAgentmail = trpc.casts.connectAgentmail.useMutation({
+  const connectAgentmail = trpc.risks.connectAgentmail.useMutation({
     onMutate: () => {
       clearAgentmailSettleTimeout();
       setCredentialFeedback((current) => ({
@@ -267,7 +267,7 @@ export function CastsRoute() {
     onSuccess: async (_, input) => {
       await Promise.all([
         utils.logs.audit.invalidate(),
-        utils.casts.providerStatus.invalidate({ castId: input.castId }),
+        utils.risks.providerStatus.invalidate({ riskId: input.riskId }),
       ]);
 
       setCredentialFeedback((current) => ({
@@ -313,32 +313,32 @@ export function CastsRoute() {
     },
   });
 
-  const createCastDisabledReason = useMemo(() => {
-    if (castName.trim().length < 2) {
-      return "Enter a cast name with at least 2 characters.";
+  const createRiskDisabledReason = useMemo(() => {
+    if (riskName.trim().length < 2) {
+      return "Enter a risk name with at least 2 characters.";
     }
 
     return null;
-  }, [castName]);
+  }, [riskName]);
 
   const providerDisabledReason = useMemo(() => {
-    if (!activeCastId) {
-      return "Select a cast first.";
+    if (!activeRiskId) {
+      return "Select a risk first.";
     }
 
     return null;
-  }, [activeCastId]);
+  }, [activeRiskId]);
 
-  const selectedCast = useMemo(() => {
-    if (!casts.data || !activeCastId) {
+  const selectedRisk = useMemo(() => {
+    if (!risks.data || !activeRiskId) {
       return null;
     }
 
-    return casts.data.find((cast) => cast.id === activeCastId) ?? null;
-  }, [casts.data, activeCastId]);
+    return risks.data.find((risk) => risk.id === activeRiskId) ?? null;
+  }, [risks.data, activeRiskId]);
 
-  const hasCasts = (casts.data?.length ?? 0) > 0;
-  const showFirstCastForm = !casts.isLoading && !casts.error && !hasCasts;
+  const hasRisks = (risks.data?.length ?? 0) > 0;
+  const showFirstRiskForm = !risks.isLoading && !risks.error && !hasRisks;
 
   useEffect(() => {
     return () => {
@@ -365,7 +365,7 @@ export function CastsRoute() {
 
     setCredentialFeedback(INITIAL_FEEDBACK_STATE);
     setCredentialPreviewOverrides({});
-  }, [activeCastId]);
+  }, [activeRiskId]);
 
   const mailchannelsAccountIdPreview =
     credentialPreviewOverrides.mailchannelsAccountId ??
@@ -517,85 +517,85 @@ export function CastsRoute() {
     <section className="stack">
       <article className="panel">
         <div className="section-header">
-          <h2>Casts 🦀🦀🦀</h2>
+          <h2>Risks 🦞🦞🦞</h2>
           <p className="muted-copy">
-            Casts isolate users, credentials, and operational activity.
+            Risks isolate users, credentials, and operational activity.
           </p>
         </div>
 
-        {casts.isLoading && (
+        {risks.isLoading && (
           <p className="status-pill info" role="status" aria-live="polite">
-            Loading casts...
+            Loading risks...
           </p>
         )}
-        {casts.error && (
+        {risks.error && (
           <div className="status-banner error" role="alert">
-            <p>Could not load casts: {casts.error.message}</p>
+            <p>Could not load risks: {risks.error.message}</p>
             <div className="status-actions">
-              <button type="button" className="button-secondary" onClick={() => casts.refetch()}>
+              <button type="button" className="button-secondary" onClick={() => risks.refetch()}>
                 Retry
               </button>
             </div>
           </div>
         )}
-        {castSuccess && (
+        {riskSuccess && (
           <p className="status-pill success" role="status" aria-live="polite">
-            {castSuccess}
+            {riskSuccess}
           </p>
         )}
-        {showFirstCastForm && createCast.error && (
+        {showFirstRiskForm && createRisk.error && (
           <p className="status-pill error" role="alert">
-            {createCast.error.message}
+            {createRisk.error.message}
           </p>
         )}
 
-        {hasCasts && (
-          <div className="cast-summary">
-            {selectedCast ? (
-              <div className="cast-summary-row">
-                <span className="cast-summary-name">{selectedCast.name}</span>
-                <span className="tag">{selectedCast.role}</span>
+        {hasRisks && (
+          <div className="risk-summary">
+            {selectedRisk ? (
+              <div className="risk-summary-row">
+                <span className="risk-summary-name">{selectedRisk.name}</span>
+                <span className="tag">{selectedRisk.role}</span>
               </div>
             ) : (
               <p className="hint-message">
-                Select a cast from the header cast menu to continue.
+                Select a risk from the header risk menu to continue.
               </p>
             )}
           </div>
         )}
 
-        {showFirstCastForm && (
+        {showFirstRiskForm && (
           <div className="form-grid">
             <p className="hint-message">
-              No casts yet. Create your first cast to begin managing providers.
+              No risks yet. Create your first risk to begin managing providers.
             </p>
             <label>
-              New cast name
+              New risk name
               <input
-                value={castName}
+                value={riskName}
                 onChange={(event) => {
-                  setCastSuccess(null);
-                  setCastName(event.target.value);
+                  setRiskSuccess(null);
+                  setRiskName(event.target.value);
                 }}
                 placeholder="acme-mail"
               />
             </label>
-            {createCastDisabledReason && (
-              <p className="hint-message">{createCastDisabledReason}</p>
+            {createRiskDisabledReason && (
+              <p className="hint-message">{createRiskDisabledReason}</p>
             )}
             <div className="button-row">
               <button
                 type="button"
-                onClick={() => createCast.mutate({ name: castName.trim() })}
-                disabled={createCast.isPending || createCastDisabledReason !== null}
+                onClick={() => createRisk.mutate({ name: riskName.trim() })}
+                disabled={createRisk.isPending || createRiskDisabledReason !== null}
               >
-                {createCast.isPending ? "Creating Cast..." : "Create Cast"}
+                {createRisk.isPending ? "Creating Risk..." : "Create Risk"}
               </button>
               <button
                 type="button"
                 className="button-secondary"
-                onClick={() => setCastName("")}
-                disabled={createCast.isPending || castName.length === 0}
+                onClick={() => setRiskName("")}
+                disabled={createRisk.isPending || riskName.length === 0}
               >
                 Clear
               </button>
@@ -608,7 +608,7 @@ export function CastsRoute() {
         <div className="section-header">
           <h2>Provider Connections</h2>
           <p className="muted-copy">
-            Store provider credentials for the selected cast only.
+            Store provider credentials for the selected risk only.
           </p>
         </div>
 
@@ -723,7 +723,7 @@ export function CastsRoute() {
                 type="button"
                 onClick={() =>
                   connectMailchannels.mutate({
-                    castId: activeCastId ?? "",
+                    riskId: activeRiskId ?? "",
                     accountId: mailchannelsNeedsAccountIdInput
                       ? mailchannelsAccountId.trim()
                       : undefined,
@@ -800,7 +800,7 @@ export function CastsRoute() {
                 type="button"
                 onClick={() =>
                   connectAgentmail.mutate({
-                    castId: activeCastId ?? "",
+                    riskId: activeRiskId ?? "",
                     apiKey: agentmailApiKey.trim(),
                   })
                 }

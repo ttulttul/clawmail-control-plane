@@ -70,8 +70,8 @@ afterAll(() => {
   modules.closeDatabase();
 });
 
-describe("cast boundary", () => {
-  test("blocks cross-cast instance access", async () => {
+describe("risk boundary", () => {
+  test("blocks cross-risk instance access", async () => {
     const anonymousCaller = modules.appRouter.createCaller(
       buildContext(null, modules.createRequestLogger("anon")),
     );
@@ -100,28 +100,28 @@ describe("cast boundary", () => {
       ),
     );
 
-    const [castOne, castTwo] = await Promise.all([
-      userOneCaller.casts.create({ name: "Cast One" }),
-      userTwoCaller.casts.create({ name: "Cast Two" }),
+    const [riskOne, riskTwo] = await Promise.all([
+      userOneCaller.risks.create({ name: "Risk One" }),
+      userTwoCaller.risks.create({ name: "Risk Two" }),
     ]);
 
-    const castOneId = castOne.castId;
-    const castTwoId = castTwo.castId;
+    const riskOneId = riskOne.riskId;
+    const riskTwoId = riskTwo.riskId;
 
     await userOneCaller.instances.create({
-      castId: castOneId,
+      riskId: riskOneId,
       name: "Alpha Instance",
       mode: "gateway",
     });
 
     await expect(
-      userOneCaller.instances.list({ castId: castTwoId }),
+      userOneCaller.instances.list({ riskId: riskTwoId }),
     ).rejects.toMatchObject({
       code: "UNAUTHORIZED",
     });
   });
 
-  test("returns redacted provider credential previews only to cast members", async () => {
+  test("returns redacted provider credential previews only to risk members", async () => {
     const anonymousCaller = modules.appRouter.createCaller(
       buildContext(null, modules.createRequestLogger("anon-preview")),
     );
@@ -150,22 +150,22 @@ describe("cast boundary", () => {
       ),
     );
 
-    const { castId } = await ownerCaller.casts.create({
-      name: "Preview Cast",
+    const { riskId } = await ownerCaller.risks.create({
+      name: "Preview Risk",
     });
 
-    await ownerCaller.casts.connectMailchannels({
-      castId,
+    await ownerCaller.risks.connectMailchannels({
+      riskId,
       accountId: "mcacct_123456",
       parentApiKey: "secret-parent-key",
     });
 
-    await ownerCaller.casts.connectAgentmail({
-      castId,
+    await ownerCaller.risks.connectAgentmail({
+      riskId,
       apiKey: "agentmail-secret-key",
     });
 
-    const preview = await ownerCaller.casts.providerStatus({ castId });
+    const preview = await ownerCaller.risks.providerStatus({ riskId });
     expect(preview).toEqual({
       mailchannelsAccountId: "mcacct...",
       mailchannelsParentApiKey: "secret...",
@@ -173,7 +173,7 @@ describe("cast boundary", () => {
     });
 
     await expect(
-      outsiderCaller.casts.providerStatus({ castId }),
+      outsiderCaller.risks.providerStatus({ riskId }),
     ).rejects.toMatchObject({
       code: "UNAUTHORIZED",
     });

@@ -462,14 +462,14 @@ label {
   flex-wrap: wrap;
 }
 
-.cast-selector {
+.risk-selector {
   min-width: 220px;
   color: var(--muted);
   font-size: 0.86rem;
   font-weight: 700;
 }
 
-.cast-create-dialog-backdrop {
+.risk-create-dialog-backdrop {
   position: fixed;
   inset: 0;
   z-index: 1000;
@@ -479,7 +479,7 @@ label {
   background: rgba(24, 39, 69, 0.4);
 }
 
-.cast-create-dialog {
+.risk-create-dialog {
   width: min(420px, 100%);
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -490,7 +490,7 @@ label {
   gap: 0.85rem;
 }
 
-.cast-create-dialog .button-row {
+.risk-create-dialog .button-row {
   justify-content: flex-end;
 }
 
@@ -678,11 +678,11 @@ label {
   gap: 0.75rem;
 }
 
-.cast-summary {
+.risk-summary {
   margin-top: 0.75rem;
 }
 
-.cast-summary-row {
+.risk-summary-row {
   border: 1px solid var(--line);
   border-radius: 12px;
   background: #fafbfd;
@@ -693,7 +693,7 @@ label {
   gap: 0.65rem;
 }
 
-.cast-summary-name {
+.risk-summary-name {
   font-weight: 600;
   color: var(--text-strong);
 }
@@ -988,7 +988,7 @@ td {
     width: 100%;
   }
 
-  .cast-selector,
+  .risk-selector,
   .workspace-actions button {
     width: 100%;
   }

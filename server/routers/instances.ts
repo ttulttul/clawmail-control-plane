@@ -4,14 +4,14 @@ import {
   createRouter,
   instanceOperatorProcedure,
   instanceScopedProcedure,
-  castMemberProcedure,
-  castOperatorProcedure,
+  riskMemberProcedure,
+  riskOperatorProcedure,
 } from "../trpc.js";
 import { recordAuditEvent } from "../services/audit-service.js";
 import {
   createInstance,
   getPolicyForInstance,
-  listInstancesByCast,
+  listInstancesByRisk,
   rotateInstanceToken,
   setInstancePolicy,
 } from "../services/instance-service.js";
@@ -26,32 +26,32 @@ const policyInputSchema = z.object({
 });
 
 export const instancesRouter = createRouter({
-  list: castMemberProcedure
+  list: riskMemberProcedure
     .input(
       z.object({
-        castId: z.string().uuid(),
+        riskId: z.string().uuid(),
       }),
     )
-    .query(async ({ ctx, input }) => listInstancesByCast(ctx.db, input.castId)),
+    .query(async ({ ctx, input }) => listInstancesByRisk(ctx.db, input.riskId)),
 
-  create: castOperatorProcedure
+  create: riskOperatorProcedure
     .input(
       z.object({
-        castId: z.string().uuid(),
+        riskId: z.string().uuid(),
         name: z.string().min(2),
         mode: z.enum(["gateway", "direct"]).default("gateway"),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const instance = await createInstance(ctx.db, {
-        castId: input.castId,
+        riskId: input.riskId,
         name: input.name,
         mode: input.mode,
       });
 
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
-        castId: input.castId,
+        riskId: input.riskId,
         action: "instance.created",
         targetType: "instance",
         targetId: instance.instanceId,
@@ -67,7 +67,7 @@ export const instancesRouter = createRouter({
   rotateToken: instanceOperatorProcedure
     .input(
       z.object({
-        castId: z.string().uuid(),
+        riskId: z.string().uuid(),
         instanceId: z.string().uuid(),
         scopes: z.array(z.string().min(1)).min(1),
         expiresInHours: z.number().int().positive().max(24 * 365).nullable(),
@@ -87,7 +87,7 @@ export const instancesRouter = createRouter({
 
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
-        castId: input.castId,
+        riskId: input.riskId,
         action: "instance.token.rotated",
         targetType: "instance",
         targetId: input.instanceId,
@@ -103,7 +103,7 @@ export const instancesRouter = createRouter({
   getPolicy: instanceScopedProcedure
     .input(
       z.object({
-        castId: z.string().uuid(),
+        riskId: z.string().uuid(),
         instanceId: z.string().uuid(),
       }),
     )
@@ -112,7 +112,7 @@ export const instancesRouter = createRouter({
   setPolicy: instanceOperatorProcedure
     .input(
       z.object({
-        castId: z.string().uuid(),
+        riskId: z.string().uuid(),
         instanceId: z.string().uuid(),
         policy: policyInputSchema,
       }),
@@ -125,7 +125,7 @@ export const instancesRouter = createRouter({
 
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
-        castId: input.castId,
+        riskId: input.riskId,
         action: "instance.policy.updated",
         targetType: "instance",
         targetId: input.instanceId,

@@ -20,7 +20,7 @@ Optional:
 ## Access Model
 
 Two access planes are enforced:
-- Operator plane (`/trpc/*`): session-authenticated users with cast role checks (`viewer`, `operator`, `admin`, `owner`) manage providers, instances, policies, and token rotation.
+- Operator plane (`/trpc/*`): session-authenticated users with risk role checks (`viewer`, `operator`, `admin`, `owner`) manage providers, instances, policies, and token rotation.
 - Agent plane (`/agent/*`): agents authenticate with scoped instance tokens via `Authorization: Bearer <token>` or `x-instance-token`.
 
 Token behavior:
@@ -30,9 +30,9 @@ Token behavior:
 
 ## Provisioning Workflow (Operator)
 
-Complete this once per cast/instance:
-1. Connect MailChannels at cast scope (`casts.connectMailchannels`).
-2. Connect AgentMail at cast scope (`casts.connectAgentmail`).
+Complete this once per risk/instance:
+1. Connect MailChannels at risk scope (`risks.connectMailchannels`).
+2. Connect AgentMail at risk scope (`risks.connectAgentmail`).
 3. Create an instance in `gateway` mode (`instances.create`).
 4. Provision MailChannels sub-account for the instance (`mailchannels.provisionSubaccount`).
 5. Ensure AgentMail pod/domain as needed (`agentmail.ensurePod`, `agentmail.createDomain`).
@@ -40,7 +40,7 @@ Complete this once per cast/instance:
 7. Rotate and capture a gateway token (`instances.rotateToken`) with required scopes.
 
 UI mapping:
-- Cast/provider setup: `Casts` page
+- Risk/provider setup: `Risks` page
 - Pod/domain setup: `Domains` page
 - Instance, sub-account, inbox, token rotation: `Instances` page
 
@@ -121,7 +121,7 @@ curl -sS -X POST "${CLAWMAIL_BASE_URL}/agent/inbox/reply" \
 ## Event and Webhook Flow
 
 Gateway event feed:
-- `GET /agent/events` returns recent webhook events scoped to the authenticated cast/instance.
+- `GET /agent/events` returns recent webhook events scoped to the authenticated risk/instance.
 
 Webhook ingest endpoints:
 - `POST /webhooks/mailchannels`
@@ -138,5 +138,5 @@ Operational notes:
 - `403 Token does not allow ...`: scope mismatch (`send` and/or `read_inbox` missing).
 - `403 Instance is not active and cannot send`: suspended/deprovisioned instance.
 - `404 No inbox provisioned for this instance`: run AgentMail inbox provisioning.
-- `400 AgentMail is not connected for this cast`: connect AgentMail credentials first.
+- `400 AgentMail is not connected for this risk`: connect AgentMail credentials first.
 - `404 MailChannels sub-account not provisioned`: provision MailChannels for that instance.

@@ -18,12 +18,12 @@ const connectors = createProviderConnectors();
 
 async function requireProvisionedSubaccount(
   db: DatabaseClient,
-  input: { castId: string; instanceId: string },
+  input: { riskId: string; instanceId: string },
 ): Promise<typeof mailchannelsSubaccounts.$inferSelect> {
   const subaccount = await db.query.mailchannelsSubaccounts.findFirst({
     where: and(
       eq(mailchannelsSubaccounts.instanceId, input.instanceId),
-      eq(mailchannelsSubaccounts.castId, input.castId),
+      eq(mailchannelsSubaccounts.riskId, input.riskId),
     ),
   });
 
@@ -37,7 +37,7 @@ async function requireProvisionedSubaccount(
 export async function provisionMailchannelsSubaccount(
   db: DatabaseClient,
   input: {
-    castId: string;
+    riskId: string;
     instanceId: string;
     limit: number;
     suspended: boolean;
@@ -50,12 +50,12 @@ export async function provisionMailchannelsSubaccount(
   providerKeyId: string;
   accountId: string;
 }> {
-  const connection = await requireMailchannelsConnection(db, input.castId);
+  const connection = await requireMailchannelsConnection(db, input.riskId);
 
   const instance = await db.query.openclawInstances.findFirst({
     where: and(
       eq(openclawInstances.id, input.instanceId),
-      eq(openclawInstances.castId, input.castId),
+      eq(openclawInstances.riskId, input.riskId),
     ),
   });
 
@@ -123,7 +123,7 @@ export async function provisionMailchannelsSubaccount(
       .insert(mailchannelsSubaccounts)
       .values({
         id: createId(),
-        castId: input.castId,
+        riskId: input.riskId,
         instanceId: input.instanceId,
         handle,
         enabled: !input.suspended,
@@ -135,7 +135,7 @@ export async function provisionMailchannelsSubaccount(
       .insert(mailchannelsSubaccountKeys)
       .values({
         id: createId(),
-        castId: input.castId,
+        riskId: input.riskId,
         subaccountHandle: handle,
         providerKeyId: key.providerKeyId,
         redactedValue: key.redactedValue,
@@ -161,13 +161,13 @@ export async function provisionMailchannelsSubaccount(
 export async function setSubaccountLimit(
   db: DatabaseClient,
   input: {
-    castId: string;
+    riskId: string;
     instanceId: string;
     limit: number;
   },
 ): Promise<void> {
   const subaccount = await requireProvisionedSubaccount(db, input);
-  const connection = await requireMailchannelsConnection(db, input.castId);
+  const connection = await requireMailchannelsConnection(db, input.riskId);
 
   await withProviderErrorMapping(
     () =>
@@ -188,12 +188,12 @@ export async function setSubaccountLimit(
 export async function deleteSubaccountLimit(
   db: DatabaseClient,
   input: {
-    castId: string;
+    riskId: string;
     instanceId: string;
   },
 ): Promise<void> {
   const subaccount = await requireProvisionedSubaccount(db, input);
-  const connection = await requireMailchannelsConnection(db, input.castId);
+  const connection = await requireMailchannelsConnection(db, input.riskId);
 
   await withProviderErrorMapping(
     () =>
@@ -213,12 +213,12 @@ export async function deleteSubaccountLimit(
 export async function suspendSubaccount(
   db: DatabaseClient,
   input: {
-    castId: string;
+    riskId: string;
     instanceId: string;
   },
 ): Promise<void> {
   const subaccount = await requireProvisionedSubaccount(db, input);
-  const connection = await requireMailchannelsConnection(db, input.castId);
+  const connection = await requireMailchannelsConnection(db, input.riskId);
 
   await withProviderErrorMapping(
     () =>
@@ -247,12 +247,12 @@ export async function suspendSubaccount(
 export async function activateSubaccount(
   db: DatabaseClient,
   input: {
-    castId: string;
+    riskId: string;
     instanceId: string;
   },
 ): Promise<void> {
   const subaccount = await requireProvisionedSubaccount(db, input);
-  const connection = await requireMailchannelsConnection(db, input.castId);
+  const connection = await requireMailchannelsConnection(db, input.riskId);
 
   await withProviderErrorMapping(
     () =>
@@ -281,17 +281,17 @@ export async function activateSubaccount(
 export async function rotateSubaccountKey(
   db: DatabaseClient,
   input: {
-    castId: string;
+    riskId: string;
     instanceId: string;
     persistDirectKey: boolean;
   },
 ): Promise<{ keyValue: string; redactedValue: string }> {
   const subaccount = await requireProvisionedSubaccount(db, input);
-  const connection = await requireMailchannelsConnection(db, input.castId);
+  const connection = await requireMailchannelsConnection(db, input.riskId);
 
   const currentKeys = await db.query.mailchannelsSubaccountKeys.findMany({
     where: and(
-      eq(mailchannelsSubaccountKeys.castId, input.castId),
+      eq(mailchannelsSubaccountKeys.riskId, input.riskId),
       eq(mailchannelsSubaccountKeys.subaccountHandle, subaccount.handle),
     ),
     orderBy: [desc(mailchannelsSubaccountKeys.createdAt)],
@@ -330,7 +330,7 @@ export async function rotateSubaccountKey(
       .set({ status: "retiring", updatedAt: Date.now() })
       .where(
         and(
-          eq(mailchannelsSubaccountKeys.castId, input.castId),
+          eq(mailchannelsSubaccountKeys.riskId, input.riskId),
           eq(mailchannelsSubaccountKeys.subaccountHandle, subaccount.handle),
           eq(mailchannelsSubaccountKeys.status, "active"),
         ),
@@ -341,7 +341,7 @@ export async function rotateSubaccountKey(
       .insert(mailchannelsSubaccountKeys)
       .values({
         id: createId(),
-        castId: input.castId,
+        riskId: input.riskId,
         subaccountHandle: subaccount.handle,
         providerKeyId: key.providerKeyId,
         redactedValue: key.redactedValue,
@@ -360,12 +360,12 @@ export async function rotateSubaccountKey(
 export async function syncSubaccountUsage(
   db: DatabaseClient,
   input: {
-    castId: string;
+    riskId: string;
     instanceId: string;
   },
 ): Promise<{ usage: number }> {
   const subaccount = await requireProvisionedSubaccount(db, input);
-  const connection = await requireMailchannelsConnection(db, input.castId);
+  const connection = await requireMailchannelsConnection(db, input.riskId);
 
   const usage = await withProviderErrorMapping(
     () =>
@@ -386,9 +386,9 @@ export async function syncSubaccountUsage(
 
 export async function validateMailchannelsWebhook(
   db: DatabaseClient,
-  castId: string,
+  riskId: string,
 ): Promise<{ ok: boolean; message: string }> {
-  const connection = await requireMailchannelsConnection(db, castId);
+  const connection = await requireMailchannelsConnection(db, riskId);
   return withProviderErrorMapping(
     () =>
       connectors.mailchannels.validateWebhook({

@@ -3,7 +3,7 @@ export type AuthMode = "login" | "register";
 interface AuthFormFields {
   email: string;
   password: string;
-  castName: string;
+  riskName: string;
 }
 
 function hasEmailValue(value: string): boolean {
@@ -30,8 +30,8 @@ export function getAuthSubmitDisabledReason(
     return "Use a password with at least 12 characters.";
   }
 
-  if (mode === "register" && fields.castName.trim().length < 2) {
-    return "Enter a cast name with at least 2 characters.";
+  if (mode === "register" && fields.riskName.trim().length < 2) {
+    return "Enter a risk name with at least 2 characters.";
   }
 
   return null;

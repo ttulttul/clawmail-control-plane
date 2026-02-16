@@ -1,29 +1,29 @@
 CREATE TABLE `agentmail_connections` (
 	`id` text PRIMARY KEY NOT NULL,
-	`cast_id` text NOT NULL,
+	`risk_id` text NOT NULL,
 	`encrypted_agentmail_api_key` text NOT NULL,
 	`default_pod_id` text,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
-	FOREIGN KEY (`cast_id`) REFERENCES `casts`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`risk_id`) REFERENCES `risks`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `agentmail_connections_cast_id_idx` ON `agentmail_connections` (`cast_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `agentmail_connections_risk_id_idx` ON `agentmail_connections` (`risk_id`);--> statement-breakpoint
 CREATE TABLE `agentmail_domains` (
 	`id` text PRIMARY KEY NOT NULL,
-	`cast_id` text NOT NULL,
+	`risk_id` text NOT NULL,
 	`pod_id` text NOT NULL,
 	`domain` text NOT NULL,
 	`status` text DEFAULT 'pending' NOT NULL,
 	`dns_records_json` text DEFAULT '[]' NOT NULL,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
-	FOREIGN KEY (`cast_id`) REFERENCES `casts`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`risk_id`) REFERENCES `risks`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `agentmail_inboxes` (
 	`id` text PRIMARY KEY NOT NULL,
-	`cast_id` text NOT NULL,
+	`risk_id` text NOT NULL,
 	`instance_id` text NOT NULL,
 	`pod_id` text NOT NULL,
 	`inbox_id` text NOT NULL,
@@ -31,29 +31,29 @@ CREATE TABLE `agentmail_inboxes` (
 	`domain` text NOT NULL,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
-	FOREIGN KEY (`cast_id`) REFERENCES `casts`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`risk_id`) REFERENCES `risks`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`instance_id`) REFERENCES `openclaw_instances`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `agentmail_pods` (
 	`id` text PRIMARY KEY NOT NULL,
-	`cast_id` text NOT NULL,
+	`risk_id` text NOT NULL,
 	`pod_id` text NOT NULL,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
-	FOREIGN KEY (`cast_id`) REFERENCES `casts`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`risk_id`) REFERENCES `risks`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `audit_log` (
 	`id` text PRIMARY KEY NOT NULL,
 	`actor_user_id` text,
-	`cast_id` text NOT NULL,
+	`risk_id` text NOT NULL,
 	`action` text NOT NULL,
 	`target_type` text NOT NULL,
 	`target_id` text NOT NULL,
 	`diff_json` text DEFAULT '{}' NOT NULL,
 	`timestamp` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	FOREIGN KEY (`actor_user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE set null,
-	FOREIGN KEY (`cast_id`) REFERENCES `casts`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`risk_id`) REFERENCES `risks`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `instance_policies` (
@@ -84,7 +84,7 @@ CREATE TABLE `instance_tokens` (
 --> statement-breakpoint
 CREATE TABLE `job_queue` (
 	`id` text PRIMARY KEY NOT NULL,
-	`cast_id` text,
+	`risk_id` text,
 	`job_type` text NOT NULL,
 	`payload_json` text NOT NULL,
 	`status` text DEFAULT 'queued' NOT NULL,
@@ -94,24 +94,24 @@ CREATE TABLE `job_queue` (
 	`last_error` text,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
-	FOREIGN KEY (`cast_id`) REFERENCES `casts`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`risk_id`) REFERENCES `risks`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `mailchannels_connections` (
 	`id` text PRIMARY KEY NOT NULL,
-	`cast_id` text NOT NULL,
+	`risk_id` text NOT NULL,
 	`mailchannels_account_id` text NOT NULL,
 	`encrypted_parent_api_key` text NOT NULL,
 	`webhook_endpoint_config` text,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
-	FOREIGN KEY (`cast_id`) REFERENCES `casts`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`risk_id`) REFERENCES `risks`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `mailchannels_connections_cast_id_idx` ON `mailchannels_connections` (`cast_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `mailchannels_connections_risk_id_idx` ON `mailchannels_connections` (`risk_id`);--> statement-breakpoint
 CREATE TABLE `mailchannels_subaccount_keys` (
 	`id` text PRIMARY KEY NOT NULL,
-	`cast_id` text NOT NULL,
+	`risk_id` text NOT NULL,
 	`subaccount_handle` text NOT NULL,
 	`provider_key_id` text NOT NULL,
 	`redacted_value` text NOT NULL,
@@ -119,14 +119,14 @@ CREATE TABLE `mailchannels_subaccount_keys` (
 	`status` text DEFAULT 'active' NOT NULL,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
-	FOREIGN KEY (`cast_id`) REFERENCES `casts`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`risk_id`) REFERENCES `risks`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`subaccount_handle`) REFERENCES `mailchannels_subaccounts`(`handle`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `mailchannels_subaccount_keys_provider_key_idx` ON `mailchannels_subaccount_keys` (`subaccount_handle`,`provider_key_id`);--> statement-breakpoint
 CREATE TABLE `mailchannels_subaccounts` (
 	`id` text PRIMARY KEY NOT NULL,
-	`cast_id` text NOT NULL,
+	`risk_id` text NOT NULL,
 	`instance_id` text NOT NULL,
 	`handle` text NOT NULL,
 	`enabled` integer DEFAULT true NOT NULL,
@@ -134,21 +134,21 @@ CREATE TABLE `mailchannels_subaccounts` (
 	`usage_current_period` integer DEFAULT 0 NOT NULL,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
-	FOREIGN KEY (`cast_id`) REFERENCES `casts`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`risk_id`) REFERENCES `risks`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`instance_id`) REFERENCES `openclaw_instances`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `mailchannels_subaccounts_handle_unique` ON `mailchannels_subaccounts` (`handle`);--> statement-breakpoint
 CREATE TABLE `openclaw_instances` (
 	`id` text PRIMARY KEY NOT NULL,
-	`cast_id` text NOT NULL,
+	`risk_id` text NOT NULL,
 	`name` text NOT NULL,
 	`status` text DEFAULT 'active' NOT NULL,
 	`mode` text DEFAULT 'gateway' NOT NULL,
 	`last_seen_at` integer,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
-	FOREIGN KEY (`cast_id`) REFERENCES `casts`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`risk_id`) REFERENCES `risks`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `rate_limit_buckets` (
@@ -164,7 +164,7 @@ CREATE TABLE `rate_limit_buckets` (
 CREATE UNIQUE INDEX `rate_limit_buckets_instance_window_idx` ON `rate_limit_buckets` (`instance_id`,`window_key`);--> statement-breakpoint
 CREATE TABLE `send_log` (
 	`id` text PRIMARY KEY NOT NULL,
-	`cast_id` text NOT NULL,
+	`risk_id` text NOT NULL,
 	`instance_id` text NOT NULL,
 	`request_id` text NOT NULL,
 	`provider_request_id` text,
@@ -173,7 +173,7 @@ CREATE TABLE `send_log` (
 	`subject_hash` text NOT NULL,
 	`provider_status` text NOT NULL,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
-	FOREIGN KEY (`cast_id`) REFERENCES `casts`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`risk_id`) REFERENCES `risks`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`instance_id`) REFERENCES `openclaw_instances`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
@@ -184,18 +184,18 @@ CREATE TABLE `sessions` (
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE `cast_memberships` (
+CREATE TABLE `risk_memberships` (
 	`id` text PRIMARY KEY NOT NULL,
-	`cast_id` text NOT NULL,
+	`risk_id` text NOT NULL,
 	`user_id` text NOT NULL,
 	`role` text DEFAULT 'viewer' NOT NULL,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
-	FOREIGN KEY (`cast_id`) REFERENCES `casts`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`risk_id`) REFERENCES `risks`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `cast_memberships_cast_user_idx` ON `cast_memberships` (`cast_id`,`user_id`);--> statement-breakpoint
-CREATE TABLE `casts` (
+CREATE UNIQUE INDEX `risk_memberships_risk_user_idx` ON `risk_memberships` (`risk_id`,`user_id`);--> statement-breakpoint
+CREATE TABLE `risks` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL
@@ -211,7 +211,7 @@ CREATE TABLE `users` (
 CREATE UNIQUE INDEX `users_email_unique` ON `users` (`email`);--> statement-breakpoint
 CREATE TABLE `webhook_events` (
 	`id` text PRIMARY KEY NOT NULL,
-	`cast_id` text,
+	`risk_id` text,
 	`instance_id` text,
 	`provider` text NOT NULL,
 	`provider_event_id` text NOT NULL,
@@ -220,7 +220,7 @@ CREATE TABLE `webhook_events` (
 	`dedupe_key` text NOT NULL,
 	`received_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`processed_at` integer,
-	FOREIGN KEY (`cast_id`) REFERENCES `casts`(`id`) ON UPDATE no action ON DELETE set null,
+	FOREIGN KEY (`risk_id`) REFERENCES `risks`(`id`) ON UPDATE no action ON DELETE set null,
 	FOREIGN KEY (`instance_id`) REFERENCES `openclaw_instances`(`id`) ON UPDATE no action ON DELETE set null
 );
 --> statement-breakpoint

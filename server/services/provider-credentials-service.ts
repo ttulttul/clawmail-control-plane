@@ -12,7 +12,7 @@ import { requireMailchannelsConnection } from "./provider-connections-service.js
 
 export async function getInstanceProviderCredentials(
   db: DatabaseClient,
-  input: { castId: string; instanceId: string },
+  input: { riskId: string; instanceId: string },
 ): Promise<{
   subaccountHandle: string;
   encryptedKey: string | null;
@@ -22,7 +22,7 @@ export async function getInstanceProviderCredentials(
   const subaccount = await db.query.mailchannelsSubaccounts.findFirst({
     where: and(
       eq(mailchannelsSubaccounts.instanceId, input.instanceId),
-      eq(mailchannelsSubaccounts.castId, input.castId),
+      eq(mailchannelsSubaccounts.riskId, input.riskId),
     ),
   });
 
@@ -35,16 +35,16 @@ export async function getInstanceProviderCredentials(
 
   const activeKey = await db.query.mailchannelsSubaccountKeys.findFirst({
     where: and(
-      eq(mailchannelsSubaccountKeys.castId, input.castId),
+      eq(mailchannelsSubaccountKeys.riskId, input.riskId),
       eq(mailchannelsSubaccountKeys.subaccountHandle, subaccount.handle),
       eq(mailchannelsSubaccountKeys.status, "active"),
     ),
     orderBy: [desc(mailchannelsSubaccountKeys.createdAt)],
   });
 
-  const connection = await requireMailchannelsConnection(db, input.castId);
+  const connection = await requireMailchannelsConnection(db, input.riskId);
   const agentmailConnection = await db.query.agentmailConnections.findFirst({
-    where: eq(agentmailConnections.castId, input.castId),
+    where: eq(agentmailConnections.riskId, input.riskId),
   });
 
   return {

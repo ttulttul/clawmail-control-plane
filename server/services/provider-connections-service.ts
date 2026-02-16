@@ -76,14 +76,14 @@ export interface ProviderCredentialPreviews {
 
 export async function getProviderCredentialPreviews(
   db: DatabaseClient,
-  castId: string,
+  riskId: string,
 ): Promise<ProviderCredentialPreviews> {
   const [mailchannelsConnection, agentmailConnection] = await Promise.all([
     db.query.mailchannelsConnections.findFirst({
-      where: eq(mailchannelsConnections.castId, castId),
+      where: eq(mailchannelsConnections.riskId, riskId),
     }),
     db.query.agentmailConnections.findFirst({
-      where: eq(agentmailConnections.castId, castId),
+      where: eq(agentmailConnections.riskId, riskId),
     }),
   ]);
 
@@ -106,16 +106,16 @@ export async function getProviderCredentialPreviews(
 
 export async function requireMailchannelsConnection(
   db: DatabaseClient,
-  castId: string,
+  riskId: string,
 ): Promise<{ accountId: string; apiKey: string }> {
   const connection = await db.query.mailchannelsConnections.findFirst({
-    where: eq(mailchannelsConnections.castId, castId),
+    where: eq(mailchannelsConnections.riskId, riskId),
   });
 
   if (!connection) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "MailChannels is not connected for this cast.",
+      message: "MailChannels is not connected for this risk.",
     });
   }
 
@@ -127,16 +127,16 @@ export async function requireMailchannelsConnection(
 
 export async function requireAgentmailConnection(
   db: DatabaseClient,
-  castId: string,
+  riskId: string,
 ): Promise<{ apiKey: string; defaultPodId: string | null }> {
   const connection = await db.query.agentmailConnections.findFirst({
-    where: eq(agentmailConnections.castId, castId),
+    where: eq(agentmailConnections.riskId, riskId),
   });
 
   if (!connection) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "AgentMail is not connected for this cast.",
+      message: "AgentMail is not connected for this risk.",
     });
   }
 
@@ -149,14 +149,14 @@ export async function requireAgentmailConnection(
 export async function saveMailchannelsConnection(
   db: DatabaseClient,
   input: {
-    castId: string;
+    riskId: string;
     mailchannelsAccountId?: string;
     parentApiKey?: string;
     webhookEndpointConfig?: Record<string, unknown>;
   },
 ): Promise<void> {
   const existing = await db.query.mailchannelsConnections.findFirst({
-    where: eq(mailchannelsConnections.castId, input.castId),
+    where: eq(mailchannelsConnections.riskId, input.riskId),
   });
 
   const normalizedAccountId = input.mailchannelsAccountId?.trim();
@@ -203,7 +203,7 @@ export async function saveMailchannelsConnection(
   if (!existing) {
     await db.insert(mailchannelsConnections).values({
       id: createId(),
-      castId: input.castId,
+      riskId: input.riskId,
       mailchannelsAccountId: nextAccountId,
       encryptedParentApiKey,
       webhookEndpointConfig,
@@ -225,7 +225,7 @@ export async function saveMailchannelsConnection(
 export async function saveAgentmailConnection(
   db: DatabaseClient,
   input: {
-    castId: string;
+    riskId: string;
     apiKey: string;
     defaultPodId?: string;
   },
@@ -235,13 +235,13 @@ export async function saveAgentmailConnection(
   });
 
   const existing = await db.query.agentmailConnections.findFirst({
-    where: eq(agentmailConnections.castId, input.castId),
+    where: eq(agentmailConnections.riskId, input.riskId),
   });
 
   if (!existing) {
     await db.insert(agentmailConnections).values({
       id: createId(),
-      castId: input.castId,
+      riskId: input.riskId,
       encryptedAgentmailApiKey: encryptSecret(input.apiKey),
       defaultPodId: input.defaultPodId ?? null,
     });

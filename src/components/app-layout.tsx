@@ -1,13 +1,13 @@
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 
 import { AuthGate } from "./auth-gate";
-import { CastSelector } from "./cast-selector";
-import { useActiveCast } from "../hooks/use-active-cast";
+import { RiskSelector } from "./risk-selector";
+import { useActiveRisk } from "../hooks/use-active-risk";
 import { trpc } from "../lib/trpc";
 
 const navLinks = [
   { to: "/", label: "Overview" },
-  { to: "/casts", label: "Casts" },
+  { to: "/risks", label: "Risks" },
   { to: "/instances", label: "Instances" },
   { to: "/domains", label: "Domains" },
   { to: "/webhooks", label: "Webhooks" },
@@ -26,16 +26,16 @@ function getUserLabel(email: string | null): string {
 export function AppLayout() {
   const path = useRouterState({ select: (state) => state.location.pathname });
   const session = trpc.auth.me.useQuery();
-  const casts = trpc.casts.list.useQuery(undefined, {
+  const risks = trpc.risks.list.useQuery(undefined, {
     enabled: Boolean(session.data),
   });
-  const { activeCastId, setActiveCastId } = useActiveCast();
+  const { activeRiskId, setActiveRiskId } = useActiveRisk();
 
   const utils = trpc.useUtils();
   const logout = trpc.auth.logout.useMutation({
     onSuccess: async () => {
       await utils.auth.me.invalidate();
-      setActiveCastId(null);
+      setActiveRiskId(null);
     },
   });
 
@@ -96,10 +96,10 @@ export function AppLayout() {
             <h1>{activePage}</h1>
           </div>
           <div className="workspace-actions">
-            <CastSelector
-              casts={casts.data}
-              activeCastId={activeCastId}
-              setActiveCastId={setActiveCastId}
+            <RiskSelector
+              risks={risks.data}
+              activeRiskId={activeRiskId}
+              setActiveRiskId={setActiveRiskId}
             />
             <button
               className="button-secondary"

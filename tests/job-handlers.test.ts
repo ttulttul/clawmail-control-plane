@@ -15,7 +15,7 @@ interface LoadedModules {
   hashPassword: (typeof import("../server/lib/password"))["hashPassword"];
   users: (typeof import("../drizzle/schema"))["users"];
   mailchannelsSubaccounts: (typeof import("../drizzle/schema"))["mailchannelsSubaccounts"];
-  createCastForUser: (typeof import("../server/services/cast-service"))["createCastForUser"];
+  createRiskForUser: (typeof import("../server/services/risk-service"))["createRiskForUser"];
   createInstance: (typeof import("../server/services/instance-service"))["createInstance"];
   saveMailchannelsConnection: (typeof import("../server/services/provider-connections-service"))["saveMailchannelsConnection"];
   provisionMailchannelsSubaccount: (typeof import("../server/services/mailchannels-provisioning-service"))["provisionMailchannelsSubaccount"];
@@ -38,7 +38,7 @@ beforeAll(async () => {
     idModule,
     passwordModule,
     schemaModule,
-    castService,
+    riskService,
     instanceService,
     connectionService,
     mailchannelsService,
@@ -49,7 +49,7 @@ beforeAll(async () => {
     import("../server/lib/id"),
     import("../server/lib/password"),
     import("../drizzle/schema"),
-    import("../server/services/cast-service"),
+    import("../server/services/risk-service"),
     import("../server/services/instance-service"),
     import("../server/services/provider-connections-service"),
     import("../server/services/mailchannels-provisioning-service"),
@@ -64,7 +64,7 @@ beforeAll(async () => {
     hashPassword: passwordModule.hashPassword,
     users: schemaModule.users,
     mailchannelsSubaccounts: schemaModule.mailchannelsSubaccounts,
-    createCastForUser: castService.createCastForUser,
+    createRiskForUser: riskService.createRiskForUser,
     createInstance: instanceService.createInstance,
     saveMailchannelsConnection: connectionService.saveMailchannelsConnection,
     provisionMailchannelsSubaccount:
@@ -87,25 +87,25 @@ describe("job handlers", () => {
       passwordHash: modules.hashPassword("super-secure-password"),
     });
 
-    const { castId } = await modules.createCastForUser(modules.db, {
+    const { riskId } = await modules.createRiskForUser(modules.db, {
       userId,
-      name: "Jobs Cast",
+      name: "Jobs Risk",
     });
 
     const { instanceId } = await modules.createInstance(modules.db, {
-      castId,
+      riskId,
       name: "Jobs Instance",
       mode: "gateway",
     });
 
     await modules.saveMailchannelsConnection(modules.db, {
-      castId,
+      riskId,
       mailchannelsAccountId: "account_jobs",
       parentApiKey: "parent_jobs_key",
     });
 
     await modules.provisionMailchannelsSubaccount(modules.db, {
-      castId,
+      riskId,
       instanceId,
       limit: 1000,
       suspended: false,

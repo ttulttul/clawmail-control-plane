@@ -1,10 +1,10 @@
 import { useState } from "react";
 
-import { useActiveCast } from "../hooks/use-active-cast";
+import { useActiveRisk } from "../hooks/use-active-risk";
 import { trpc } from "../lib/trpc";
 
 export function WebhooksRoute() {
-  const { activeCastId } = useActiveCast();
+  const { activeRiskId } = useActiveRisk();
   const [lastValidatedAt, setLastValidatedAt] = useState<string | null>(null);
 
   const validate = trpc.mailchannels.validateWebhook.useMutation({
@@ -13,12 +13,12 @@ export function WebhooksRoute() {
     },
   });
 
-  if (!activeCastId) {
+  if (!activeRiskId) {
     return (
       <section className="panel">
-        <h2>Select a Cast 🦀🦀🦀</h2>
+        <h2>Select a Risk 🦞🦞🦞</h2>
         <p className="muted-copy">
-          Choose a cast to validate MailChannels webhook configuration.
+          Choose a risk to validate MailChannels webhook configuration.
         </p>
       </section>
     );
@@ -56,7 +56,7 @@ export function WebhooksRoute() {
       <div className="button-row">
         <button
           type="button"
-          onClick={() => validate.mutate({ castId: activeCastId })}
+          onClick={() => validate.mutate({ riskId: activeRiskId })}
           disabled={validate.isPending}
         >
           {validate.isPending ? "Validating..." : "Validate Webhook"}

@@ -14,8 +14,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "cast_id": {
-          "name": "cast_id",
+        "risk_id": {
+          "name": "risk_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -53,21 +53,21 @@
         }
       },
       "indexes": {
-        "agentmail_connections_cast_id_idx": {
-          "name": "agentmail_connections_cast_id_idx",
+        "agentmail_connections_risk_id_idx": {
+          "name": "agentmail_connections_risk_id_idx",
           "columns": [
-            "cast_id"
+            "risk_id"
           ],
           "isUnique": true
         }
       },
       "foreignKeys": {
-        "agentmail_connections_cast_id_casts_id_fk": {
-          "name": "agentmail_connections_cast_id_casts_id_fk",
+        "agentmail_connections_risk_id_risks_id_fk": {
+          "name": "agentmail_connections_risk_id_risks_id_fk",
           "tableFrom": "agentmail_connections",
-          "tableTo": "casts",
+          "tableTo": "risks",
           "columnsFrom": [
-            "cast_id"
+            "risk_id"
           ],
           "columnsTo": [
             "id"
@@ -90,8 +90,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "cast_id": {
-          "name": "cast_id",
+        "risk_id": {
+          "name": "risk_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -146,12 +146,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "agentmail_domains_cast_id_casts_id_fk": {
-          "name": "agentmail_domains_cast_id_casts_id_fk",
+        "agentmail_domains_risk_id_risks_id_fk": {
+          "name": "agentmail_domains_risk_id_risks_id_fk",
           "tableFrom": "agentmail_domains",
-          "tableTo": "casts",
+          "tableTo": "risks",
           "columnsFrom": [
-            "cast_id"
+            "risk_id"
           ],
           "columnsTo": [
             "id"
@@ -174,8 +174,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "cast_id": {
-          "name": "cast_id",
+        "risk_id": {
+          "name": "risk_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -235,12 +235,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "agentmail_inboxes_cast_id_casts_id_fk": {
-          "name": "agentmail_inboxes_cast_id_casts_id_fk",
+        "agentmail_inboxes_risk_id_risks_id_fk": {
+          "name": "agentmail_inboxes_risk_id_risks_id_fk",
           "tableFrom": "agentmail_inboxes",
-          "tableTo": "casts",
+          "tableTo": "risks",
           "columnsFrom": [
-            "cast_id"
+            "risk_id"
           ],
           "columnsTo": [
             "id"
@@ -276,8 +276,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "cast_id": {
-          "name": "cast_id",
+        "risk_id": {
+          "name": "risk_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -301,12 +301,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "agentmail_pods_cast_id_casts_id_fk": {
-          "name": "agentmail_pods_cast_id_casts_id_fk",
+        "agentmail_pods_risk_id_risks_id_fk": {
+          "name": "agentmail_pods_risk_id_risks_id_fk",
           "tableFrom": "agentmail_pods",
-          "tableTo": "casts",
+          "tableTo": "risks",
           "columnsFrom": [
-            "cast_id"
+            "risk_id"
           ],
           "columnsTo": [
             "id"
@@ -336,8 +336,8 @@
           "notNull": false,
           "autoincrement": false
         },
-        "cast_id": {
-          "name": "cast_id",
+        "risk_id": {
+          "name": "risk_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -396,12 +396,12 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "audit_log_cast_id_casts_id_fk": {
-          "name": "audit_log_cast_id_casts_id_fk",
+        "audit_log_risk_id_risks_id_fk": {
+          "name": "audit_log_risk_id_risks_id_fk",
           "tableFrom": "audit_log",
-          "tableTo": "casts",
+          "tableTo": "risks",
           "columnsFrom": [
-            "cast_id"
+            "risk_id"
           ],
           "columnsTo": [
             "id"
@@ -608,8 +608,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "cast_id": {
-          "name": "cast_id",
+        "risk_id": {
+          "name": "risk_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -686,12 +686,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "job_queue_cast_id_casts_id_fk": {
-          "name": "job_queue_cast_id_casts_id_fk",
+        "job_queue_risk_id_risks_id_fk": {
+          "name": "job_queue_risk_id_risks_id_fk",
           "tableFrom": "job_queue",
-          "tableTo": "casts",
+          "tableTo": "risks",
           "columnsFrom": [
-            "cast_id"
+            "risk_id"
           ],
           "columnsTo": [
             "id"
@@ -714,8 +714,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "cast_id": {
-          "name": "cast_id",
+        "risk_id": {
+          "name": "risk_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -760,21 +760,21 @@
         }
       },
       "indexes": {
-        "mailchannels_connections_cast_id_idx": {
-          "name": "mailchannels_connections_cast_id_idx",
+        "mailchannels_connections_risk_id_idx": {
+          "name": "mailchannels_connections_risk_id_idx",
           "columns": [
-            "cast_id"
+            "risk_id"
           ],
           "isUnique": true
         }
       },
       "foreignKeys": {
-        "mailchannels_connections_cast_id_casts_id_fk": {
-          "name": "mailchannels_connections_cast_id_casts_id_fk",
+        "mailchannels_connections_risk_id_risks_id_fk": {
+          "name": "mailchannels_connections_risk_id_risks_id_fk",
           "tableFrom": "mailchannels_connections",
-          "tableTo": "casts",
+          "tableTo": "risks",
           "columnsFrom": [
-            "cast_id"
+            "risk_id"
           ],
           "columnsTo": [
             "id"
@@ -797,8 +797,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "cast_id": {
-          "name": "cast_id",
+        "risk_id": {
+          "name": "risk_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -868,12 +868,12 @@
         }
       },
       "foreignKeys": {
-        "mailchannels_subaccount_keys_cast_id_casts_id_fk": {
-          "name": "mailchannels_subaccount_keys_cast_id_casts_id_fk",
+        "mailchannels_subaccount_keys_risk_id_risks_id_fk": {
+          "name": "mailchannels_subaccount_keys_risk_id_risks_id_fk",
           "tableFrom": "mailchannels_subaccount_keys",
-          "tableTo": "casts",
+          "tableTo": "risks",
           "columnsFrom": [
-            "cast_id"
+            "risk_id"
           ],
           "columnsTo": [
             "id"
@@ -909,8 +909,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "cast_id": {
-          "name": "cast_id",
+        "risk_id": {
+          "name": "risk_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -981,12 +981,12 @@
         }
       },
       "foreignKeys": {
-        "mailchannels_subaccounts_cast_id_casts_id_fk": {
-          "name": "mailchannels_subaccounts_cast_id_casts_id_fk",
+        "mailchannels_subaccounts_risk_id_risks_id_fk": {
+          "name": "mailchannels_subaccounts_risk_id_risks_id_fk",
           "tableFrom": "mailchannels_subaccounts",
-          "tableTo": "casts",
+          "tableTo": "risks",
           "columnsFrom": [
-            "cast_id"
+            "risk_id"
           ],
           "columnsTo": [
             "id"
@@ -1022,8 +1022,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "cast_id": {
-          "name": "cast_id",
+        "risk_id": {
+          "name": "risk_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -1078,12 +1078,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "openclaw_instances_cast_id_casts_id_fk": {
-          "name": "openclaw_instances_cast_id_casts_id_fk",
+        "openclaw_instances_risk_id_risks_id_fk": {
+          "name": "openclaw_instances_risk_id_risks_id_fk",
           "tableFrom": "openclaw_instances",
-          "tableTo": "casts",
+          "tableTo": "risks",
           "columnsFrom": [
-            "cast_id"
+            "risk_id"
           ],
           "columnsTo": [
             "id"
@@ -1184,8 +1184,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "cast_id": {
-          "name": "cast_id",
+        "risk_id": {
+          "name": "risk_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -1251,12 +1251,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "send_log_cast_id_casts_id_fk": {
-          "name": "send_log_cast_id_casts_id_fk",
+        "send_log_risk_id_risks_id_fk": {
+          "name": "send_log_risk_id_risks_id_fk",
           "tableFrom": "send_log",
-          "tableTo": "casts",
+          "tableTo": "risks",
           "columnsFrom": [
-            "cast_id"
+            "risk_id"
           ],
           "columnsTo": [
             "id"
@@ -1327,8 +1327,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "cast_memberships": {
-      "name": "cast_memberships",
+    "risk_memberships": {
+      "name": "risk_memberships",
       "columns": {
         "id": {
           "name": "id",
@@ -1337,8 +1337,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "cast_id": {
-          "name": "cast_id",
+        "risk_id": {
+          "name": "risk_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -1369,22 +1369,22 @@
         }
       },
       "indexes": {
-        "cast_memberships_cast_user_idx": {
-          "name": "cast_memberships_cast_user_idx",
+        "risk_memberships_risk_user_idx": {
+          "name": "risk_memberships_risk_user_idx",
           "columns": [
-            "cast_id",
+            "risk_id",
             "user_id"
           ],
           "isUnique": true
         }
       },
       "foreignKeys": {
-        "cast_memberships_cast_id_casts_id_fk": {
-          "name": "cast_memberships_cast_id_casts_id_fk",
-          "tableFrom": "cast_memberships",
-          "tableTo": "casts",
+        "risk_memberships_risk_id_risks_id_fk": {
+          "name": "risk_memberships_risk_id_risks_id_fk",
+          "tableFrom": "risk_memberships",
+          "tableTo": "risks",
           "columnsFrom": [
-            "cast_id"
+            "risk_id"
           ],
           "columnsTo": [
             "id"
@@ -1392,9 +1392,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "cast_memberships_user_id_users_id_fk": {
-          "name": "cast_memberships_user_id_users_id_fk",
-          "tableFrom": "cast_memberships",
+        "risk_memberships_user_id_users_id_fk": {
+          "name": "risk_memberships_user_id_users_id_fk",
+          "tableFrom": "risk_memberships",
           "tableTo": "users",
           "columnsFrom": [
             "user_id"
@@ -1410,8 +1410,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "casts": {
-      "name": "casts",
+    "risks": {
+      "name": "risks",
       "columns": {
         "id": {
           "name": "id",
@@ -1499,8 +1499,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "cast_id": {
-          "name": "cast_id",
+        "risk_id": {
+          "name": "risk_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -1574,12 +1574,12 @@
         }
       },
       "foreignKeys": {
-        "webhook_events_cast_id_casts_id_fk": {
-          "name": "webhook_events_cast_id_casts_id_fk",
+        "webhook_events_risk_id_risks_id_fk": {
+          "name": "webhook_events_risk_id_risks_id_fk",
           "tableFrom": "webhook_events",
-          "tableTo": "casts",
+          "tableTo": "risks",
           "columnsFrom": [
-            "cast_id"
+            "risk_id"
           ],
           "columnsTo": [
             "id"

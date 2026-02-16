@@ -2,8 +2,8 @@ import { z } from "zod";
 
 import {
   createRouter,
-  castMemberProcedure,
-  castOperatorProcedure,
+  riskMemberProcedure,
+  riskOperatorProcedure,
 } from "../trpc.js";
 import { recordAuditEvent } from "../services/audit-service.js";
 import {
@@ -14,10 +14,10 @@ import {
 } from "../services/agentmail-provisioning-service.js";
 
 export const agentmailRouter = createRouter({
-  ensurePod: castOperatorProcedure
+  ensurePod: riskOperatorProcedure
     .input(
       z.object({
-        castId: z.string().uuid(),
+        riskId: z.string().uuid(),
         podName: z.string().min(2),
       }),
     )
@@ -25,20 +25,20 @@ export const agentmailRouter = createRouter({
       const pod = await ensurePod(ctx.db, input);
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
-        castId: input.castId,
+        riskId: input.riskId,
         action: "agentmail.pod.ensured",
-        targetType: "cast",
-        targetId: input.castId,
+        targetType: "risk",
+        targetId: input.riskId,
         diff: pod,
       });
 
       return pod;
     }),
 
-  createDomain: castOperatorProcedure
+  createDomain: riskOperatorProcedure
     .input(
       z.object({
-        castId: z.string().uuid(),
+        riskId: z.string().uuid(),
         podId: z.string().min(1),
         domain: z.string().min(3),
       }),
@@ -47,7 +47,7 @@ export const agentmailRouter = createRouter({
       const domain = await createAgentmailDomain(ctx.db, input);
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
-        castId: input.castId,
+        riskId: input.riskId,
         action: "agentmail.domain.created",
         targetType: "domain",
         targetId: domain.domain,
@@ -57,10 +57,10 @@ export const agentmailRouter = createRouter({
       return domain;
     }),
 
-  createInbox: castOperatorProcedure
+  createInbox: riskOperatorProcedure
     .input(
       z.object({
-        castId: z.string().uuid(),
+        riskId: z.string().uuid(),
         instanceId: z.string().uuid(),
         username: z.string().min(1),
         domain: z.string().optional(),
@@ -70,7 +70,7 @@ export const agentmailRouter = createRouter({
       const inbox = await createAgentmailInboxForInstance(ctx.db, input);
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
-        castId: input.castId,
+        riskId: input.riskId,
         action: "agentmail.inbox.created",
         targetType: "instance",
         targetId: input.instanceId,
@@ -80,11 +80,11 @@ export const agentmailRouter = createRouter({
       return inbox;
     }),
 
-  listDomains: castMemberProcedure
+  listDomains: riskMemberProcedure
     .input(
       z.object({
-        castId: z.string().uuid(),
+        riskId: z.string().uuid(),
       }),
     )
-    .query(async ({ ctx, input }) => listDomainRecords(ctx.db, input.castId)),
+    .query(async ({ ctx, input }) => listDomainRecords(ctx.db, input.riskId)),
 });
