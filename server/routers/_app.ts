@@ -4,11 +4,11 @@ import { authRouter } from "./auth.js";
 import { instancesRouter } from "./instances.js";
 import { logsRouter } from "./logs.js";
 import { mailchannelsRouter } from "./mailchannels.js";
-import { tenantsRouter } from "./tenants.js";
+import { castsRouter } from "./casts.js";
 
 export const appRouter = createRouter({
   auth: authRouter,
-  tenants: tenantsRouter,
+  casts: castsRouter,
   instances: instancesRouter,
   mailchannels: mailchannelsRouter,
   agentmail: agentmailRouter,

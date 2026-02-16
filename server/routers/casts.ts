@@ -3,8 +3,8 @@ import { z } from "zod";
 import {
   createRouter,
   protectedProcedure,
-  tenantAdminProcedure,
-  tenantMemberProcedure,
+  castAdminProcedure,
+  castMemberProcedure,
 } from "../trpc.js";
 import { recordAuditEvent } from "../services/audit-service.js";
 import {
@@ -13,23 +13,23 @@ import {
   saveMailchannelsConnection,
 } from "../services/provider-connections-service.js";
 import {
-  createTenantForUser,
-  listTenantsForUser,
-} from "../services/tenant-service.js";
+  createCastForUser,
+  listCastsForUser,
+} from "../services/cast-service.js";
 
-export const tenantsRouter = createRouter({
+export const castsRouter = createRouter({
   list: protectedProcedure.query(async ({ ctx }) => {
-    return listTenantsForUser(ctx.db, ctx.auth.user.id);
+    return listCastsForUser(ctx.db, ctx.auth.user.id);
   }),
 
-  providerStatus: tenantMemberProcedure
+  providerStatus: castMemberProcedure
     .input(
       z.object({
-        tenantId: z.string().uuid(),
+        castId: z.string().uuid(),
       }),
     )
     .query(async ({ ctx, input }) => {
-      return getProviderCredentialPreviews(ctx.db, input.tenantId);
+      return getProviderCredentialPreviews(ctx.db, input.castId);
     }),
 
   create: protectedProcedure
@@ -39,44 +39,44 @@ export const tenantsRouter = createRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const tenant = await createTenantForUser(ctx.db, {
+      const cast = await createCastForUser(ctx.db, {
         userId: ctx.auth.user.id,
         name: input.name,
       });
 
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
-        tenantId: tenant.tenantId,
-        action: "tenant.created",
-        targetType: "tenant",
-        targetId: tenant.tenantId,
+        castId: cast.castId,
+        action: "cast.created",
+        targetType: "cast",
+        targetId: cast.castId,
         diff: { name: input.name },
       });
 
-      return tenant;
+      return cast;
     }),
 
-  connectMailchannels: tenantAdminProcedure
+  connectMailchannels: castAdminProcedure
     .input(
       z.object({
-        tenantId: z.string().uuid(),
+        castId: z.string().uuid(),
         accountId: z.string().min(1).optional(),
         parentApiKey: z.string().min(1).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       await saveMailchannelsConnection(ctx.db, {
-        tenantId: input.tenantId,
+        castId: input.castId,
         mailchannelsAccountId: input.accountId,
         parentApiKey: input.parentApiKey,
       });
 
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
-        tenantId: input.tenantId,
+        castId: input.castId,
         action: "mailchannels.connection.saved",
         targetType: "mailchannels_connection",
-        targetId: input.tenantId,
+        targetId: input.castId,
         diff: {
           accountId: input.accountId ?? null,
           parentApiKeyUpdated: input.parentApiKey ? true : null,
@@ -86,27 +86,27 @@ export const tenantsRouter = createRouter({
       return { success: true };
     }),
 
-  connectAgentmail: tenantAdminProcedure
+  connectAgentmail: castAdminProcedure
     .input(
       z.object({
-        tenantId: z.string().uuid(),
+        castId: z.string().uuid(),
         apiKey: z.string().min(1),
         defaultPodId: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       await saveAgentmailConnection(ctx.db, {
-        tenantId: input.tenantId,
+        castId: input.castId,
         apiKey: input.apiKey,
         defaultPodId: input.defaultPodId,
       });
 
       await recordAuditEvent(ctx.db, {
         actorUserId: ctx.auth.user.id,
-        tenantId: input.tenantId,
+        castId: input.castId,
         action: "agentmail.connection.saved",
         targetType: "agentmail_connection",
-        targetId: input.tenantId,
+        targetId: input.castId,
         diff: { defaultPodId: input.defaultPodId ?? null },
       });
 

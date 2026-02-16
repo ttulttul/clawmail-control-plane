@@ -70,8 +70,8 @@ afterAll(() => {
   modules.closeDatabase();
 });
 
-describe("tenant boundary", () => {
-  test("blocks cross-tenant instance access", async () => {
+describe("cast boundary", () => {
+  test("blocks cross-cast instance access", async () => {
     const anonymousCaller = modules.appRouter.createCaller(
       buildContext(null, modules.createRequestLogger("anon")),
     );
@@ -100,28 +100,28 @@ describe("tenant boundary", () => {
       ),
     );
 
-    const [tenantOne, tenantTwo] = await Promise.all([
-      userOneCaller.tenants.create({ name: "Tenant One" }),
-      userTwoCaller.tenants.create({ name: "Tenant Two" }),
+    const [castOne, castTwo] = await Promise.all([
+      userOneCaller.casts.create({ name: "Cast One" }),
+      userTwoCaller.casts.create({ name: "Cast Two" }),
     ]);
 
-    const tenantOneId = tenantOne.tenantId;
-    const tenantTwoId = tenantTwo.tenantId;
+    const castOneId = castOne.castId;
+    const castTwoId = castTwo.castId;
 
     await userOneCaller.instances.create({
-      tenantId: tenantOneId,
+      castId: castOneId,
       name: "Alpha Instance",
       mode: "gateway",
     });
 
     await expect(
-      userOneCaller.instances.list({ tenantId: tenantTwoId }),
+      userOneCaller.instances.list({ castId: castTwoId }),
     ).rejects.toMatchObject({
       code: "UNAUTHORIZED",
     });
   });
 
-  test("returns redacted provider credential previews only to tenant members", async () => {
+  test("returns redacted provider credential previews only to cast members", async () => {
     const anonymousCaller = modules.appRouter.createCaller(
       buildContext(null, modules.createRequestLogger("anon-preview")),
     );
@@ -150,22 +150,22 @@ describe("tenant boundary", () => {
       ),
     );
 
-    const { tenantId } = await ownerCaller.tenants.create({
-      name: "Preview Tenant",
+    const { castId } = await ownerCaller.casts.create({
+      name: "Preview Cast",
     });
 
-    await ownerCaller.tenants.connectMailchannels({
-      tenantId,
+    await ownerCaller.casts.connectMailchannels({
+      castId,
       accountId: "mcacct_123456",
       parentApiKey: "secret-parent-key",
     });
 
-    await ownerCaller.tenants.connectAgentmail({
-      tenantId,
+    await ownerCaller.casts.connectAgentmail({
+      castId,
       apiKey: "agentmail-secret-key",
     });
 
-    const preview = await ownerCaller.tenants.providerStatus({ tenantId });
+    const preview = await ownerCaller.casts.providerStatus({ castId });
     expect(preview).toEqual({
       mailchannelsAccountId: "mcacct...",
       mailchannelsParentApiKey: "secret...",
@@ -173,7 +173,7 @@ describe("tenant boundary", () => {
     });
 
     await expect(
-      outsiderCaller.tenants.providerStatus({ tenantId }),
+      outsiderCaller.casts.providerStatus({ castId }),
     ).rejects.toMatchObject({
       code: "UNAUTHORIZED",
     });

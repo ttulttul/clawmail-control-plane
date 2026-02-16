@@ -8,7 +8,7 @@ describe("getAuthSubmitDisabledReason", () => {
       getAuthSubmitDisabledReason("login", {
         email: "",
         password: "secret",
-        tenantName: "",
+        castName: "",
       }),
     ).toBe("Enter your email address.");
   });
@@ -18,7 +18,7 @@ describe("getAuthSubmitDisabledReason", () => {
       getAuthSubmitDisabledReason("login", {
         email: "ops@example.com",
         password: "",
-        tenantName: "",
+        castName: "",
       }),
     ).toBe("Enter your password.");
   });
@@ -28,19 +28,19 @@ describe("getAuthSubmitDisabledReason", () => {
       getAuthSubmitDisabledReason("register", {
         email: "ops@example.com",
         password: "short",
-        tenantName: "",
+        castName: "",
       }),
     ).toBe("Use a password with at least 12 characters.");
   });
 
-  test("requires tenant name for register mode", () => {
+  test("requires cast name for register mode", () => {
     expect(
       getAuthSubmitDisabledReason("register", {
         email: "ops@example.com",
         password: "long-enough-password",
-        tenantName: "a",
+        castName: "a",
       }),
-    ).toBe("Enter a tenant name with at least 2 characters.");
+    ).toBe("Enter a cast name with at least 2 characters.");
   });
 
   test("returns null when fields are valid", () => {
@@ -48,7 +48,7 @@ describe("getAuthSubmitDisabledReason", () => {
       getAuthSubmitDisabledReason("register", {
         email: "ops@example.com",
         password: "long-enough-password",
-        tenantName: "acme",
+        castName: "acme",
       }),
     ).toBeNull();
   });

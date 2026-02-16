@@ -12,7 +12,7 @@ import { parseStringArray, safeJsonStringify } from "../lib/json-codec.js";
 import { generateOpaqueToken, hashToken } from "../lib/token.js";
 
 export interface CreateInstanceInput {
-  tenantId: string;
+  castId: string;
   name: string;
   mode: "gateway" | "direct";
 }
@@ -28,7 +28,7 @@ export async function createInstance(
       .insert(openclawInstances)
       .values({
         id: instanceId,
-        tenantId: input.tenantId,
+        castId: input.castId,
         name: input.name,
         mode: input.mode,
         status: "active",
@@ -56,9 +56,9 @@ export async function createInstance(
   return { instanceId };
 }
 
-export async function listInstancesByTenant(
+export async function listInstancesByCast(
   db: DatabaseClient,
-  tenantId: string,
+  castId: string,
 ): Promise<
   Array<{
     id: string;
@@ -69,7 +69,7 @@ export async function listInstancesByTenant(
   }>
 > {
   const rows = await db.query.openclawInstances.findMany({
-    where: eq(openclawInstances.tenantId, tenantId),
+    where: eq(openclawInstances.castId, castId),
     orderBy: (table, { desc }) => [desc(table.createdAt)],
   });
 
@@ -84,20 +84,20 @@ export async function listInstancesByTenant(
 
 export async function requireInstance(
   db: DatabaseClient,
-  input: { instanceId: string; tenantId?: string },
+  input: { instanceId: string; castId?: string },
 ): Promise<{
   id: string;
-  tenantId: string;
+  castId: string;
   status: "active" | "suspended" | "deprovisioned";
   name: string;
   mode: "gateway" | "direct";
 }> {
   const instance = await db.query.openclawInstances.findFirst({
     where:
-      input.tenantId !== undefined
+      input.castId !== undefined
         ? and(
             eq(openclawInstances.id, input.instanceId),
-            eq(openclawInstances.tenantId, input.tenantId),
+            eq(openclawInstances.castId, input.castId),
           )
         : eq(openclawInstances.id, input.instanceId),
   });
@@ -246,7 +246,7 @@ export async function rotateInstanceToken(
 export async function authenticateInstanceToken(
   db: DatabaseClient,
   token: string,
-): Promise<{ instanceId: string; tenantId: string; scopes: string[] } | null> {
+): Promise<{ instanceId: string; castId: string; scopes: string[] } | null> {
   const tokenHash = hashToken(token);
   const row = await db.query.instanceTokens.findFirst({
     where: and(eq(instanceTokens.tokenHash, tokenHash), isNull(instanceTokens.revokedAt)),
@@ -267,7 +267,7 @@ export async function authenticateInstanceToken(
 
   return {
     instanceId: row.instanceId,
-    tenantId: row.instance.tenantId,
+    castId: row.instance.castId,
     scopes,
   };
 }

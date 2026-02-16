@@ -70,7 +70,7 @@ export async function storeWebhookEvent(
     provider: "mailchannels" | "agentmail";
     providerEventId: string;
     eventType: string;
-    tenantId?: string;
+    castId?: string;
     instanceId?: string;
     payload: unknown;
   },
@@ -95,7 +95,7 @@ export async function storeWebhookEvent(
     provider: input.provider,
     providerEventId: input.providerEventId,
     eventType: input.eventType,
-    tenantId: input.tenantId ?? null,
+    castId: input.castId ?? null,
     instanceId: input.instanceId ?? null,
     payloadJson: JSON.stringify(input.payload),
     dedupeKey,

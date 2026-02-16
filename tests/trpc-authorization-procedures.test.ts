@@ -15,7 +15,7 @@ interface LoadedModules {
   closeDatabase: (typeof import("../server/lib/db"))["closeDatabase"];
   createRequestLogger: (typeof import("../server/lib/logger"))["createRequestLogger"];
   createId: (typeof import("../server/lib/id"))["createId"];
-  tenantMemberships: (typeof import("../drizzle/schema"))["tenantMemberships"];
+  castMemberships: (typeof import("../drizzle/schema"))["castMemberships"];
 }
 
 let modules: LoadedModules;
@@ -67,7 +67,7 @@ beforeAll(async () => {
     closeDatabase: dbModule.closeDatabase,
     createRequestLogger: loggerModule.createRequestLogger,
     createId: idModule.createId,
-    tenantMemberships: schemaModule.tenantMemberships,
+    castMemberships: schemaModule.castMemberships,
   };
 });
 
@@ -117,41 +117,41 @@ describe("tRPC authorization procedures", () => {
       ),
     );
 
-    const { tenantId } = await ownerCaller.tenants.create({
-      name: "Authz Tenant",
+    const { castId } = await ownerCaller.casts.create({
+      name: "Authz Cast",
     });
 
     const { instanceId } = await ownerCaller.instances.create({
-      tenantId,
+      castId,
       name: "Authz Instance",
       mode: "gateway",
     });
 
-    await modules.db.insert(modules.tenantMemberships).values({
+    await modules.db.insert(modules.castMemberships).values({
       id: modules.createId(),
-      tenantId,
+      castId,
       userId: viewer.userId,
       role: "viewer",
     });
 
-    const visibleInstances = await viewerCaller.instances.list({ tenantId });
+    const visibleInstances = await viewerCaller.instances.list({ castId });
     expect(visibleInstances.map((instance) => instance.id)).toContain(instanceId);
 
     await expect(
       viewerCaller.instances.create({
-        tenantId,
+        castId,
         name: "Should Be Blocked",
         mode: "gateway",
       }),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
 
     await expect(
-      outsiderCaller.logs.sends({ tenantId, limit: 10 }),
+      outsiderCaller.logs.sends({ castId, limit: 10 }),
     ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
 
     await expect(
       ownerCaller.instances.getPolicy({
-        tenantId,
+        castId,
         instanceId: randomUUID(),
       }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });

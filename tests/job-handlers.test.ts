@@ -15,7 +15,7 @@ interface LoadedModules {
   hashPassword: (typeof import("../server/lib/password"))["hashPassword"];
   users: (typeof import("../drizzle/schema"))["users"];
   mailchannelsSubaccounts: (typeof import("../drizzle/schema"))["mailchannelsSubaccounts"];
-  createTenantForUser: (typeof import("../server/services/tenant-service"))["createTenantForUser"];
+  createCastForUser: (typeof import("../server/services/cast-service"))["createCastForUser"];
   createInstance: (typeof import("../server/services/instance-service"))["createInstance"];
   saveMailchannelsConnection: (typeof import("../server/services/provider-connections-service"))["saveMailchannelsConnection"];
   provisionMailchannelsSubaccount: (typeof import("../server/services/mailchannels-provisioning-service"))["provisionMailchannelsSubaccount"];
@@ -38,7 +38,7 @@ beforeAll(async () => {
     idModule,
     passwordModule,
     schemaModule,
-    tenantService,
+    castService,
     instanceService,
     connectionService,
     mailchannelsService,
@@ -49,7 +49,7 @@ beforeAll(async () => {
     import("../server/lib/id"),
     import("../server/lib/password"),
     import("../drizzle/schema"),
-    import("../server/services/tenant-service"),
+    import("../server/services/cast-service"),
     import("../server/services/instance-service"),
     import("../server/services/provider-connections-service"),
     import("../server/services/mailchannels-provisioning-service"),
@@ -64,7 +64,7 @@ beforeAll(async () => {
     hashPassword: passwordModule.hashPassword,
     users: schemaModule.users,
     mailchannelsSubaccounts: schemaModule.mailchannelsSubaccounts,
-    createTenantForUser: tenantService.createTenantForUser,
+    createCastForUser: castService.createCastForUser,
     createInstance: instanceService.createInstance,
     saveMailchannelsConnection: connectionService.saveMailchannelsConnection,
     provisionMailchannelsSubaccount:
@@ -87,25 +87,25 @@ describe("job handlers", () => {
       passwordHash: modules.hashPassword("super-secure-password"),
     });
 
-    const { tenantId } = await modules.createTenantForUser(modules.db, {
+    const { castId } = await modules.createCastForUser(modules.db, {
       userId,
-      name: "Jobs Tenant",
+      name: "Jobs Cast",
     });
 
     const { instanceId } = await modules.createInstance(modules.db, {
-      tenantId,
+      castId,
       name: "Jobs Instance",
       mode: "gateway",
     });
 
     await modules.saveMailchannelsConnection(modules.db, {
-      tenantId,
+      castId,
       mailchannelsAccountId: "account_jobs",
       parentApiKey: "parent_jobs_key",
     });
 
     await modules.provisionMailchannelsSubaccount(modules.db, {
-      tenantId,
+      castId,
       instanceId,
       limit: 1000,
       suspended: false,

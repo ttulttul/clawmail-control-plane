@@ -36,7 +36,7 @@ export const requireAgentAuth: MiddlewareHandler<{
 
   c.set("agentAuth", {
     instanceId: authenticated.instanceId,
-    tenantId: authenticated.tenantId,
+    castId: authenticated.castId,
     scopes: authenticated.scopes,
   });
 

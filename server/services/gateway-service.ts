@@ -16,7 +16,7 @@ import { withProviderErrorMapping } from "./provider-error-mapper.js";
 const connectors = createProviderConnectors();
 
 export interface GatewaySendInput {
-  tenantId: string;
+  castId: string;
   instanceId: string;
   from: string;
   to: string[];
@@ -34,7 +34,7 @@ export async function sendViaGateway(
 ): Promise<{ providerRequestId: string; status: string }> {
   const instance = await requireInstance(db, {
     instanceId: input.instanceId,
-    tenantId: input.tenantId,
+    castId: input.castId,
   });
 
   if (instance.status !== "active") {
@@ -56,7 +56,7 @@ export async function sendViaGateway(
   });
 
   const credentials = await getInstanceProviderCredentials(db, {
-    tenantId: input.tenantId,
+    castId: input.castId,
     instanceId: input.instanceId,
   });
 
@@ -81,7 +81,7 @@ export async function sendViaGateway(
 
   await db.insert(sendLog).values({
     id: createId(),
-    tenantId: input.tenantId,
+    castId: input.castId,
     instanceId: input.instanceId,
     requestId,
     providerRequestId: response.requestId,
@@ -105,7 +105,7 @@ export async function sendViaGateway(
 
 export async function listGatewayEvents(
   db: DatabaseClient,
-  input: { tenantId: string; instanceId: string; limit: number },
+  input: { castId: string; instanceId: string; limit: number },
 ): Promise<
   Array<{
     id: string;
@@ -116,7 +116,7 @@ export async function listGatewayEvents(
 > {
   const rows = await db.query.webhookEvents.findMany({
     where: and(
-      eq(webhookEvents.tenantId, input.tenantId),
+      eq(webhookEvents.castId, input.castId),
       eq(webhookEvents.instanceId, input.instanceId),
     ),
     orderBy: [desc(webhookEvents.receivedAt)],
@@ -133,12 +133,12 @@ export async function listGatewayEvents(
 
 export async function listInboxThreads(
   db: DatabaseClient,
-  input: { tenantId: string; instanceId: string },
+  input: { castId: string; instanceId: string },
 ): Promise<Array<{ id: string; subject: string; lastMessageAt: string }>> {
   const inbox = await db.query.agentmailInboxes.findFirst({
     where: and(
       eq(agentmailInboxes.instanceId, input.instanceId),
-      eq(agentmailInboxes.tenantId, input.tenantId),
+      eq(agentmailInboxes.castId, input.castId),
     ),
   });
 
@@ -150,14 +150,14 @@ export async function listInboxThreads(
   }
 
   const credentials = await getInstanceProviderCredentials(db, {
-    tenantId: input.tenantId,
+    castId: input.castId,
     instanceId: input.instanceId,
   });
 
   if (!credentials.agentmailApiKey) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "AgentMail is not connected for this tenant.",
+      message: "AgentMail is not connected for this cast.",
     });
   }
 
@@ -175,7 +175,7 @@ export async function listInboxThreads(
 export async function getInboxMessage(
   db: DatabaseClient,
   input: {
-    tenantId: string;
+    castId: string;
     instanceId: string;
     messageId: string;
   },
@@ -183,7 +183,7 @@ export async function getInboxMessage(
   const inbox = await db.query.agentmailInboxes.findFirst({
     where: and(
       eq(agentmailInboxes.instanceId, input.instanceId),
-      eq(agentmailInboxes.tenantId, input.tenantId),
+      eq(agentmailInboxes.castId, input.castId),
     ),
   });
 
@@ -195,14 +195,14 @@ export async function getInboxMessage(
   }
 
   const credentials = await getInstanceProviderCredentials(db, {
-    tenantId: input.tenantId,
+    castId: input.castId,
     instanceId: input.instanceId,
   });
 
   if (!credentials.agentmailApiKey) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "AgentMail is not connected for this tenant.",
+      message: "AgentMail is not connected for this cast.",
     });
   }
 
@@ -221,7 +221,7 @@ export async function getInboxMessage(
 export async function replyInboxMessage(
   db: DatabaseClient,
   input: {
-    tenantId: string;
+    castId: string;
     instanceId: string;
     messageId: string;
     body: string;
@@ -230,7 +230,7 @@ export async function replyInboxMessage(
   const inbox = await db.query.agentmailInboxes.findFirst({
     where: and(
       eq(agentmailInboxes.instanceId, input.instanceId),
-      eq(agentmailInboxes.tenantId, input.tenantId),
+      eq(agentmailInboxes.castId, input.castId),
     ),
   });
 
@@ -242,14 +242,14 @@ export async function replyInboxMessage(
   }
 
   const credentials = await getInstanceProviderCredentials(db, {
-    tenantId: input.tenantId,
+    castId: input.castId,
     instanceId: input.instanceId,
   });
 
   if (!credentials.agentmailApiKey) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "AgentMail is not connected for this tenant.",
+      message: "AgentMail is not connected for this cast.",
     });
   }
 

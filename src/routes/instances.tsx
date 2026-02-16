@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { GatewayTokenPanel } from "../components/instances/gateway-token-panel";
 import { InstanceCreateForm } from "../components/instances/instance-create-form";
 import { InstanceList } from "../components/instances/instance-list";
-import { useActiveTenant } from "../hooks/use-active-tenant";
+import { useActiveCast } from "../hooks/use-active-cast";
 import { trpc } from "../lib/trpc";
 
 type NoticeTone = "info" | "success" | "error";
@@ -18,7 +18,7 @@ function shouldProceed(message: string): boolean {
 }
 
 export function InstancesRoute() {
-  const { activeTenantId } = useActiveTenant();
+  const { activeCastId } = useActiveCast();
 
   const [instanceName, setInstanceName] = useState("");
   const [username, setUsername] = useState("agent");
@@ -30,8 +30,8 @@ export function InstancesRoute() {
   const utils = trpc.useUtils();
 
   const instances = trpc.instances.list.useQuery(
-    { tenantId: activeTenantId ?? "" },
-    { enabled: Boolean(activeTenantId) },
+    { castId: activeCastId ?? "" },
+    { enabled: Boolean(activeCastId) },
   );
 
   const createInstance = trpc.instances.create.useMutation({
@@ -158,22 +158,22 @@ export function InstancesRoute() {
     return null;
   }, [instanceName]);
 
-  if (!activeTenantId) {
+  if (!activeCastId) {
     return (
       <section className="panel">
-        <h2>Select a tenant</h2>
+        <h2>Select a Cast 🦀🦀🦀</h2>
         <p className="muted-copy">
-          Pick a tenant from the header to manage instances and gateway access.
+          Pick a cast from the header to manage instances and gateway access.
         </p>
       </section>
     );
   }
 
-  const tenantId = activeTenantId;
+  const castId = activeCastId;
 
   function handleCreateInstance(): void {
     createInstance.mutate({
-      tenantId,
+      castId,
       name: instanceName.trim(),
       mode: "gateway",
     });
@@ -181,7 +181,7 @@ export function InstancesRoute() {
 
   function handleProvisionMailchannels(instanceId: string): void {
     provisionSubaccount.mutate({
-      tenantId,
+      castId,
       instanceId,
       limit,
       suspended: false,
@@ -191,7 +191,7 @@ export function InstancesRoute() {
 
   function handleProvisionInbox(instanceId: string): void {
     createInbox.mutate({
-      tenantId,
+      castId,
       instanceId,
       username: username.trim(),
     });
@@ -207,7 +207,7 @@ export function InstancesRoute() {
     }
 
     rotateToken.mutate({
-      tenantId,
+      castId,
       instanceId,
       scopes: ["send", "read_inbox"],
       expiresInHours: null,
@@ -224,14 +224,14 @@ export function InstancesRoute() {
     }
 
     suspend.mutate({
-      tenantId,
+      castId,
       instanceId,
     });
   }
 
   function handleActivate(instanceId: string): void {
     activate.mutate({
-      tenantId,
+      castId,
       instanceId,
     });
   }

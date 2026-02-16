@@ -1,13 +1,13 @@
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 
 import { AuthGate } from "./auth-gate";
-import { TenantSelector } from "./tenant-selector";
-import { useActiveTenant } from "../hooks/use-active-tenant";
+import { CastSelector } from "./cast-selector";
+import { useActiveCast } from "../hooks/use-active-cast";
 import { trpc } from "../lib/trpc";
 
 const navLinks = [
   { to: "/", label: "Overview" },
-  { to: "/tenants", label: "Tenants" },
+  { to: "/casts", label: "Casts" },
   { to: "/instances", label: "Instances" },
   { to: "/domains", label: "Domains" },
   { to: "/webhooks", label: "Webhooks" },
@@ -26,16 +26,16 @@ function getUserLabel(email: string | null): string {
 export function AppLayout() {
   const path = useRouterState({ select: (state) => state.location.pathname });
   const session = trpc.auth.me.useQuery();
-  const tenants = trpc.tenants.list.useQuery(undefined, {
+  const casts = trpc.casts.list.useQuery(undefined, {
     enabled: Boolean(session.data),
   });
-  const { activeTenantId, setActiveTenantId } = useActiveTenant();
+  const { activeCastId, setActiveCastId } = useActiveCast();
 
   const utils = trpc.useUtils();
   const logout = trpc.auth.logout.useMutation({
     onSuccess: async () => {
       await utils.auth.me.invalidate();
-      setActiveTenantId(null);
+      setActiveCastId(null);
     },
   });
 
@@ -96,10 +96,10 @@ export function AppLayout() {
             <h1>{activePage}</h1>
           </div>
           <div className="workspace-actions">
-            <TenantSelector
-              tenants={tenants.data}
-              activeTenantId={activeTenantId}
-              setActiveTenantId={setActiveTenantId}
+            <CastSelector
+              casts={casts.data}
+              activeCastId={activeCastId}
+              setActiveCastId={setActiveCastId}
             />
             <button
               className="button-secondary"

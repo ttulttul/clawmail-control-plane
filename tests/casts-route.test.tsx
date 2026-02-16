@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import { TenantsRoute } from "../src/routes/tenants";
+import { CastsRoute } from "../src/routes/casts";
 
 interface ProviderStatusData {
   mailchannelsAccountId: string | null;
@@ -10,13 +10,13 @@ interface ProviderStatusData {
 }
 
 interface MailchannelsMutationInput {
-  tenantId: string;
+  castId: string;
   accountId?: string;
   parentApiKey?: string;
 }
 
 interface AgentmailMutationInput {
-  tenantId: string;
+  castId: string;
   apiKey: string;
 }
 
@@ -27,7 +27,7 @@ interface MutationOptions<TInput> {
 }
 
 const mocks = vi.hoisted(() => ({
-  useActiveTenant: vi.fn(),
+  useActiveCast: vi.fn(),
   useUtils: vi.fn(),
   listUseQuery: vi.fn(),
   providerStatusUseQuery: vi.fn(),
@@ -36,14 +36,14 @@ const mocks = vi.hoisted(() => ({
   connectAgentmailUseMutation: vi.fn(),
 }));
 
-vi.mock("../src/hooks/use-active-tenant", () => ({
-  useActiveTenant: mocks.useActiveTenant,
+vi.mock("../src/hooks/use-active-cast", () => ({
+  useActiveCast: mocks.useActiveCast,
 }));
 
 vi.mock("../src/lib/trpc", () => ({
   trpc: {
     useUtils: mocks.useUtils,
-    tenants: {
+    casts: {
       list: { useQuery: mocks.listUseQuery },
       providerStatus: { useQuery: mocks.providerStatusUseQuery },
       create: { useMutation: mocks.createUseMutation },
@@ -75,7 +75,7 @@ async function advanceTimerAndFlush(ms: number): Promise<void> {
   });
 }
 
-describe("TenantsRoute", () => {
+describe("CastsRoute", () => {
   let providerStatusData: ProviderStatusData;
   let mailchannelsOutcome: "success" | "error";
   let agentmailOutcome: "success" | "error";
@@ -102,14 +102,14 @@ describe("TenantsRoute", () => {
 
     const invalidate = vi.fn(() => Promise.resolve());
 
-    mocks.useActiveTenant.mockReturnValue({
-      activeTenantId: "tenant-1",
-      setActiveTenantId: vi.fn(),
+    mocks.useActiveCast.mockReturnValue({
+      activeCastId: "cast-1",
+      setActiveCastId: vi.fn(),
     });
 
     mocks.useUtils.mockReturnValue({
       logs: { audit: { invalidate } },
-      tenants: {
+      casts: {
         list: { invalidate },
         providerStatus: { invalidate },
       },
@@ -118,7 +118,7 @@ describe("TenantsRoute", () => {
     mocks.listUseQuery.mockReturnValue({
       isLoading: false,
       error: null,
-      data: [{ id: "tenant-1", name: "Tenant One", role: "owner" }],
+      data: [{ id: "cast-1", name: "Cast One", role: "owner" }],
       refetch: vi.fn(),
     });
 
@@ -192,7 +192,7 @@ describe("TenantsRoute", () => {
   test("shows configured redacted previews and sends only edited MailChannels fields", () => {
     autoResolveMutations = false;
 
-    render(<TenantsRoute />);
+    render(<CastsRoute />);
 
     const accountInput = screen.getByLabelText("Account ID");
     const saveMailchannelsButton = screen.getByRole("button", {
@@ -217,7 +217,7 @@ describe("TenantsRoute", () => {
     fireEvent.click(saveMailchannelsButton);
 
     expect(mailchannelsMutate).toHaveBeenCalledWith({
-      tenantId: "tenant-1",
+      castId: "cast-1",
       accountId: "mcacct_new",
       parentApiKey: undefined,
     });
@@ -231,7 +231,7 @@ describe("TenantsRoute", () => {
       agentmailApiKey: null,
     };
 
-    render(<TenantsRoute />);
+    render(<CastsRoute />);
 
     const apiKeyInput = screen.getByPlaceholderText("AgentMail API key");
 
@@ -259,7 +259,7 @@ describe("TenantsRoute", () => {
     vi.useFakeTimers();
     mailchannelsOutcome = "error";
 
-    render(<TenantsRoute />);
+    render(<CastsRoute />);
 
     const accountInput = screen.getByPlaceholderText("MailChannels account ID");
 
@@ -307,18 +307,18 @@ describe("TenantsRoute", () => {
     ).not.toHaveAttribute("readonly");
   });
 
-  test("shows selected tenant summary and hides tenant creation form when tenants exist", () => {
-    render(<TenantsRoute />);
+  test("shows selected cast summary and hides cast creation form when casts exist", () => {
+    render(<CastsRoute />);
 
-    expect(screen.getByText("Tenant One")).toBeInTheDocument();
+    expect(screen.getByText("Cast One")).toBeInTheDocument();
     expect(screen.getByText("owner")).toBeInTheDocument();
-    expect(screen.queryByLabelText("New tenant name")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("New cast name")).not.toBeInTheDocument();
   });
 
-  test("shows first-tenant creation form when no tenants exist", () => {
-    mocks.useActiveTenant.mockReturnValue({
-      activeTenantId: null,
-      setActiveTenantId: vi.fn(),
+  test("shows first-cast creation form when no casts exist", () => {
+    mocks.useActiveCast.mockReturnValue({
+      activeCastId: null,
+      setActiveCastId: vi.fn(),
     });
     mocks.listUseQuery.mockReturnValue({
       isLoading: false,
@@ -327,11 +327,11 @@ describe("TenantsRoute", () => {
       refetch: vi.fn(),
     });
 
-    render(<TenantsRoute />);
+    render(<CastsRoute />);
 
     expect(
-      screen.getByText("No tenants yet. Create your first tenant to begin managing providers."),
+      screen.getByText("No casts yet. Create your first cast to begin managing providers."),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("New tenant name")).toBeInTheDocument();
+    expect(screen.getByLabelText("New cast name")).toBeInTheDocument();
   });
 });

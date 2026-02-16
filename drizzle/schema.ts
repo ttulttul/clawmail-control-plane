@@ -48,7 +48,7 @@ export const sessions = sqliteTable("sessions", {
   expiresAt: integer("expires_at").notNull(),
 });
 
-export const tenants = sqliteTable("tenants", {
+export const casts = sqliteTable("casts", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   createdAt: integer("created_at")
@@ -56,13 +56,13 @@ export const tenants = sqliteTable("tenants", {
     .default(sql`(unixepoch() * 1000)`),
 });
 
-export const tenantMemberships = sqliteTable(
-  "tenant_memberships",
+export const castMemberships = sqliteTable(
+  "cast_memberships",
   {
     id: text("id").primaryKey(),
-    tenantId: text("tenant_id")
+    castId: text("cast_id")
       .notNull()
-      .references(() => tenants.id, { onDelete: "cascade" }),
+      .references(() => casts.id, { onDelete: "cascade" }),
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -76,8 +76,8 @@ export const tenantMemberships = sqliteTable(
       .default(sql`(unixepoch() * 1000)`),
   },
   (table) => ({
-    tenantUserUnique: uniqueIndex("tenant_memberships_tenant_user_idx").on(
-      table.tenantId,
+    castUserUnique: uniqueIndex("cast_memberships_cast_user_idx").on(
+      table.castId,
       table.userId,
     ),
   }),
@@ -87,9 +87,9 @@ export const mailchannelsConnections = sqliteTable(
   "mailchannels_connections",
   {
     id: text("id").primaryKey(),
-    tenantId: text("tenant_id")
+    castId: text("cast_id")
       .notNull()
-      .references(() => tenants.id, { onDelete: "cascade" }),
+      .references(() => casts.id, { onDelete: "cascade" }),
     mailchannelsAccountId: text("mailchannels_account_id").notNull(),
     encryptedParentApiKey: text("encrypted_parent_api_key").notNull(),
     webhookEndpointConfig: text("webhook_endpoint_config"),
@@ -101,8 +101,8 @@ export const mailchannelsConnections = sqliteTable(
       .default(sql`(unixepoch() * 1000)`),
   },
   (table) => ({
-    tenantUnique: uniqueIndex("mailchannels_connections_tenant_id_idx").on(
-      table.tenantId,
+    castUnique: uniqueIndex("mailchannels_connections_cast_id_idx").on(
+      table.castId,
     ),
   }),
 );
@@ -111,9 +111,9 @@ export const agentmailConnections = sqliteTable(
   "agentmail_connections",
   {
     id: text("id").primaryKey(),
-    tenantId: text("tenant_id")
+    castId: text("cast_id")
       .notNull()
-      .references(() => tenants.id, { onDelete: "cascade" }),
+      .references(() => casts.id, { onDelete: "cascade" }),
     encryptedAgentmailApiKey: text("encrypted_agentmail_api_key").notNull(),
     defaultPodId: text("default_pod_id"),
     createdAt: integer("created_at")
@@ -124,17 +124,17 @@ export const agentmailConnections = sqliteTable(
       .default(sql`(unixepoch() * 1000)`),
   },
   (table) => ({
-    tenantUnique: uniqueIndex("agentmail_connections_tenant_id_idx").on(
-      table.tenantId,
+    castUnique: uniqueIndex("agentmail_connections_cast_id_idx").on(
+      table.castId,
     ),
   }),
 );
 
 export const openclawInstances = sqliteTable("openclaw_instances", {
   id: text("id").primaryKey(),
-  tenantId: text("tenant_id")
+  castId: text("cast_id")
     .notNull()
-    .references(() => tenants.id, { onDelete: "cascade" }),
+    .references(() => casts.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   status: text("status", {
     enum: ["active", "suspended", "deprovisioned"],
@@ -174,9 +174,9 @@ export const instancePolicies = sqliteTable("instance_policies", {
 
 export const mailchannelsSubaccounts = sqliteTable("mailchannels_subaccounts", {
   id: text("id").primaryKey(),
-  tenantId: text("tenant_id")
+  castId: text("cast_id")
     .notNull()
-    .references(() => tenants.id, { onDelete: "cascade" }),
+    .references(() => casts.id, { onDelete: "cascade" }),
   instanceId: text("instance_id")
     .notNull()
     .references(() => openclawInstances.id, { onDelete: "cascade" }),
@@ -196,9 +196,9 @@ export const mailchannelsSubaccountKeys = sqliteTable(
   "mailchannels_subaccount_keys",
   {
     id: text("id").primaryKey(),
-    tenantId: text("tenant_id")
+    castId: text("cast_id")
       .notNull()
-      .references(() => tenants.id, { onDelete: "cascade" }),
+      .references(() => casts.id, { onDelete: "cascade" }),
     subaccountHandle: text("subaccount_handle")
       .notNull()
       .references(() => mailchannelsSubaccounts.handle, { onDelete: "cascade" }),
@@ -225,9 +225,9 @@ export const mailchannelsSubaccountKeys = sqliteTable(
 
 export const agentmailPods = sqliteTable("agentmail_pods", {
   id: text("id").primaryKey(),
-  tenantId: text("tenant_id")
+  castId: text("cast_id")
     .notNull()
-    .references(() => tenants.id, { onDelete: "cascade" }),
+    .references(() => casts.id, { onDelete: "cascade" }),
   podId: text("pod_id").notNull(),
   createdAt: integer("created_at")
     .notNull()
@@ -236,9 +236,9 @@ export const agentmailPods = sqliteTable("agentmail_pods", {
 
 export const agentmailDomains = sqliteTable("agentmail_domains", {
   id: text("id").primaryKey(),
-  tenantId: text("tenant_id")
+  castId: text("cast_id")
     .notNull()
-    .references(() => tenants.id, { onDelete: "cascade" }),
+    .references(() => casts.id, { onDelete: "cascade" }),
   podId: text("pod_id").notNull(),
   domain: text("domain").notNull(),
   status: text("status").notNull().default("pending"),
@@ -253,9 +253,9 @@ export const agentmailDomains = sqliteTable("agentmail_domains", {
 
 export const agentmailInboxes = sqliteTable("agentmail_inboxes", {
   id: text("id").primaryKey(),
-  tenantId: text("tenant_id")
+  castId: text("cast_id")
     .notNull()
-    .references(() => tenants.id, { onDelete: "cascade" }),
+    .references(() => casts.id, { onDelete: "cascade" }),
   instanceId: text("instance_id")
     .notNull()
     .references(() => openclawInstances.id, { onDelete: "cascade" }),
@@ -288,9 +288,9 @@ export const instanceTokens = sqliteTable("instance_tokens", {
 
 export const sendLog = sqliteTable("send_log", {
   id: text("id").primaryKey(),
-  tenantId: text("tenant_id")
+  castId: text("cast_id")
     .notNull()
-    .references(() => tenants.id, { onDelete: "cascade" }),
+    .references(() => casts.id, { onDelete: "cascade" }),
   instanceId: text("instance_id")
     .notNull()
     .references(() => openclawInstances.id, { onDelete: "cascade" }),
@@ -309,7 +309,7 @@ export const webhookEvents = sqliteTable(
   "webhook_events",
   {
     id: text("id").primaryKey(),
-    tenantId: text("tenant_id").references(() => tenants.id, {
+    castId: text("cast_id").references(() => casts.id, {
       onDelete: "set null",
     }),
     instanceId: text("instance_id").references(() => openclawInstances.id, {
@@ -335,9 +335,9 @@ export const auditLog = sqliteTable("audit_log", {
   actorUserId: text("actor_user_id").references(() => users.id, {
     onDelete: "set null",
   }),
-  tenantId: text("tenant_id")
+  castId: text("cast_id")
     .notNull()
-    .references(() => tenants.id, { onDelete: "cascade" }),
+    .references(() => casts.id, { onDelete: "cascade" }),
   action: text("action").notNull(),
   targetType: text("target_type").notNull(),
   targetId: text("target_id").notNull(),
@@ -349,7 +349,7 @@ export const auditLog = sqliteTable("audit_log", {
 
 export const jobQueue = sqliteTable("job_queue", {
   id: text("id").primaryKey(),
-  tenantId: text("tenant_id").references(() => tenants.id, {
+  castId: text("cast_id").references(() => casts.id, {
     onDelete: "cascade",
   }),
   jobType: text("job_type").notNull(),
@@ -394,32 +394,32 @@ export const rateLimitBuckets = sqliteTable(
 );
 
 export const usersRelations = relations(users, ({ many }) => ({
-  memberships: many(tenantMemberships),
+  memberships: many(castMemberships),
 }));
 
-export const tenantsRelations = relations(tenants, ({ many }) => ({
-  memberships: many(tenantMemberships),
+export const castsRelations = relations(casts, ({ many }) => ({
+  memberships: many(castMemberships),
   instances: many(openclawInstances),
 }));
 
-export const tenantMembershipsRelations = relations(
-  tenantMemberships,
+export const castMembershipsRelations = relations(
+  castMemberships,
   ({ one }) => ({
-    tenant: one(tenants, {
-      fields: [tenantMemberships.tenantId],
-      references: [tenants.id],
+    cast: one(casts, {
+      fields: [castMemberships.castId],
+      references: [casts.id],
     }),
     user: one(users, {
-      fields: [tenantMemberships.userId],
+      fields: [castMemberships.userId],
       references: [users.id],
     }),
   }),
 );
 
 export const instancesRelations = relations(openclawInstances, ({ one, many }) => ({
-  tenant: one(tenants, {
-    fields: [openclawInstances.tenantId],
-    references: [tenants.id],
+  cast: one(casts, {
+    fields: [openclawInstances.castId],
+    references: [casts.id],
   }),
   policies: many(instancePolicies),
   tokens: many(instanceTokens),
@@ -434,8 +434,8 @@ export const instanceTokensRelations = relations(instanceTokens, ({ one }) => ({
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
-export type Tenant = typeof tenants.$inferSelect;
-export type TenantMembership = typeof tenantMemberships.$inferSelect;
+export type Cast = typeof casts.$inferSelect;
+export type CastMembership = typeof castMemberships.$inferSelect;
 export type OpenclawInstance = typeof openclawInstances.$inferSelect;
 export type InstancePolicy = typeof instancePolicies.$inferSelect;
 export type InstanceToken = typeof instanceTokens.$inferSelect;

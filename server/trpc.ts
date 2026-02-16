@@ -4,9 +4,9 @@ import { db } from "./lib/db.js";
 import type { RequestLogger } from "./lib/logger.js";
 import { requireInstance } from "./services/instance-service.js";
 import {
-  requireTenantMembership,
-  type TenantRole,
-} from "./services/tenant-service.js";
+  requireCastMembership,
+  type CastRole,
+} from "./services/cast-service.js";
 import type { AuthVariables } from "./types/hono.js";
 
 export interface TrpcContext {
@@ -39,7 +39,7 @@ export const createRouter = t.router;
 export const publicProcedure = t.procedure;
 export const protectedProcedure = t.procedure.use(authenticatedMiddleware);
 
-function readInputId(input: unknown, key: "tenantId" | "instanceId"): string {
+function readInputId(input: unknown, key: "castId" | "instanceId"): string {
   if (typeof input !== "object" || input === null) {
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -58,7 +58,7 @@ function readInputId(input: unknown, key: "tenantId" | "instanceId"): string {
   return value;
 }
 
-function createTenantMembershipMiddleware(minimumRole?: TenantRole) {
+function createCastMembershipMiddleware(minimumRole?: CastRole) {
   return t.middleware(async ({ ctx, getRawInput, next }) => {
     const auth = ctx.auth;
     if (!auth) {
@@ -68,11 +68,11 @@ function createTenantMembershipMiddleware(minimumRole?: TenantRole) {
       });
     }
 
-    const tenantId = readInputId(await getRawInput(), "tenantId");
+    const castId = readInputId(await getRawInput(), "castId");
 
-    await requireTenantMembership(ctx.db, {
+    await requireCastMembership(ctx.db, {
       userId: auth.user.id,
-      tenantId,
+      castId,
       minimumRole,
     });
 
@@ -80,27 +80,27 @@ function createTenantMembershipMiddleware(minimumRole?: TenantRole) {
   });
 }
 
-const tenantMemberMiddleware = createTenantMembershipMiddleware();
-const tenantOperatorMiddleware = createTenantMembershipMiddleware("operator");
-const tenantAdminMiddleware = createTenantMembershipMiddleware("admin");
+const castMemberMiddleware = createCastMembershipMiddleware();
+const castOperatorMiddleware = createCastMembershipMiddleware("operator");
+const castAdminMiddleware = createCastMembershipMiddleware("admin");
 const instanceScopedMiddleware = t.middleware(async ({ ctx, getRawInput, next }) => {
   const rawInput = await getRawInput();
   await requireInstance(ctx.db, {
-    tenantId: readInputId(rawInput, "tenantId"),
+    castId: readInputId(rawInput, "castId"),
     instanceId: readInputId(rawInput, "instanceId"),
   });
 
   return next();
 });
 
-export const tenantMemberProcedure = protectedProcedure.use(tenantMemberMiddleware);
-export const tenantOperatorProcedure = protectedProcedure.use(
-  tenantOperatorMiddleware,
+export const castMemberProcedure = protectedProcedure.use(castMemberMiddleware);
+export const castOperatorProcedure = protectedProcedure.use(
+  castOperatorMiddleware,
 );
-export const tenantAdminProcedure = protectedProcedure.use(tenantAdminMiddleware);
-export const instanceScopedProcedure = tenantMemberProcedure.use(
+export const castAdminProcedure = protectedProcedure.use(castAdminMiddleware);
+export const instanceScopedProcedure = castMemberProcedure.use(
   instanceScopedMiddleware,
 );
-export const instanceOperatorProcedure = tenantOperatorProcedure.use(
+export const instanceOperatorProcedure = castOperatorProcedure.use(
   instanceScopedMiddleware,
 );

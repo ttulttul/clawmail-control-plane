@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { useActiveTenant } from "../hooks/use-active-tenant";
+import { useActiveCast } from "../hooks/use-active-cast";
 import { trpc } from "../lib/trpc";
 
 type CredentialFieldId =
@@ -14,7 +14,7 @@ type CredentialFeedbackState = Record<CredentialFieldId, CredentialFeedbackTone>
 type CredentialPreviewOverrides = Partial<Record<CredentialFieldId, string | null>>;
 
 interface MailchannelsMutationInput {
-  tenantId: string;
+  castId: string;
   accountId?: string;
   parentApiKey?: string;
 }
@@ -110,9 +110,9 @@ function getCredentialInputClass(
   return classNames.join(" ");
 }
 
-export function TenantsRoute() {
-  const { activeTenantId, setActiveTenantId } = useActiveTenant();
-  const [tenantName, setTenantName] = useState("");
+export function CastsRoute() {
+  const { activeCastId, setActiveCastId } = useActiveCast();
+  const [castName, setCastName] = useState("");
   const [mailchannelsAccountId, setMailchannelsAccountId] = useState("");
   const [mailchannelsApiKey, setMailchannelsApiKey] = useState("");
   const [agentmailApiKey, setAgentmailApiKey] = useState("");
@@ -122,7 +122,7 @@ export function TenantsRoute() {
   const [mailchannelsAccountIdForceEntry, setMailchannelsAccountIdForceEntry] = useState(false);
   const [mailchannelsApiKeyForceEntry, setMailchannelsApiKeyForceEntry] = useState(false);
   const [agentmailApiKeyForceEntry, setAgentmailApiKeyForceEntry] = useState(false);
-  const [tenantSuccess, setTenantSuccess] = useState<string | null>(null);
+  const [castSuccess, setCastSuccess] = useState<string | null>(null);
   const [credentialFeedback, setCredentialFeedback] = useState<CredentialFeedbackState>(
     INITIAL_FEEDBACK_STATE,
   );
@@ -151,25 +151,25 @@ export function TenantsRoute() {
   };
 
   const utils = trpc.useUtils();
-  const tenants = trpc.tenants.list.useQuery();
-  const providerStatus = trpc.tenants.providerStatus.useQuery(
-    { tenantId: activeTenantId ?? "" },
-    { enabled: Boolean(activeTenantId) },
+  const casts = trpc.casts.list.useQuery();
+  const providerStatus = trpc.casts.providerStatus.useQuery(
+    { castId: activeCastId ?? "" },
+    { enabled: Boolean(activeCastId) },
   );
 
-  const createTenant = trpc.tenants.create.useMutation({
+  const createCast = trpc.casts.create.useMutation({
     onMutate: () => {
-      setTenantSuccess(null);
+      setCastSuccess(null);
     },
     onSuccess: async (result, input) => {
-      await utils.tenants.list.invalidate();
-      setActiveTenantId(result.tenantId);
-      setTenantName("");
-      setTenantSuccess(`Tenant "${input.name.trim()}" created.`);
+      await utils.casts.list.invalidate();
+      setActiveCastId(result.castId);
+      setCastName("");
+      setCastSuccess(`Cast "${input.name.trim()}" created.`);
     },
   });
 
-  const connectMailchannels = trpc.tenants.connectMailchannels.useMutation({
+  const connectMailchannels = trpc.casts.connectMailchannels.useMutation({
     onMutate: (input) => {
       const fields = getMailchannelsValidationFields(input);
       clearMailchannelsSettleTimeout();
@@ -182,7 +182,7 @@ export function TenantsRoute() {
 
       await Promise.all([
         utils.logs.audit.invalidate(),
-        utils.tenants.providerStatus.invalidate({ tenantId: input.tenantId }),
+        utils.casts.providerStatus.invalidate({ castId: input.castId }),
       ]);
 
       setCredentialFeedback((current) =>
@@ -256,7 +256,7 @@ export function TenantsRoute() {
     },
   });
 
-  const connectAgentmail = trpc.tenants.connectAgentmail.useMutation({
+  const connectAgentmail = trpc.casts.connectAgentmail.useMutation({
     onMutate: () => {
       clearAgentmailSettleTimeout();
       setCredentialFeedback((current) => ({
@@ -267,7 +267,7 @@ export function TenantsRoute() {
     onSuccess: async (_, input) => {
       await Promise.all([
         utils.logs.audit.invalidate(),
-        utils.tenants.providerStatus.invalidate({ tenantId: input.tenantId }),
+        utils.casts.providerStatus.invalidate({ castId: input.castId }),
       ]);
 
       setCredentialFeedback((current) => ({
@@ -313,32 +313,32 @@ export function TenantsRoute() {
     },
   });
 
-  const createTenantDisabledReason = useMemo(() => {
-    if (tenantName.trim().length < 2) {
-      return "Enter a tenant name with at least 2 characters.";
+  const createCastDisabledReason = useMemo(() => {
+    if (castName.trim().length < 2) {
+      return "Enter a cast name with at least 2 characters.";
     }
 
     return null;
-  }, [tenantName]);
+  }, [castName]);
 
   const providerDisabledReason = useMemo(() => {
-    if (!activeTenantId) {
-      return "Select a tenant first.";
+    if (!activeCastId) {
+      return "Select a cast first.";
     }
 
     return null;
-  }, [activeTenantId]);
+  }, [activeCastId]);
 
-  const selectedTenant = useMemo(() => {
-    if (!tenants.data || !activeTenantId) {
+  const selectedCast = useMemo(() => {
+    if (!casts.data || !activeCastId) {
       return null;
     }
 
-    return tenants.data.find((tenant) => tenant.id === activeTenantId) ?? null;
-  }, [tenants.data, activeTenantId]);
+    return casts.data.find((cast) => cast.id === activeCastId) ?? null;
+  }, [casts.data, activeCastId]);
 
-  const hasTenants = (tenants.data?.length ?? 0) > 0;
-  const showFirstTenantForm = !tenants.isLoading && !tenants.error && !hasTenants;
+  const hasCasts = (casts.data?.length ?? 0) > 0;
+  const showFirstCastForm = !casts.isLoading && !casts.error && !hasCasts;
 
   useEffect(() => {
     return () => {
@@ -365,7 +365,7 @@ export function TenantsRoute() {
 
     setCredentialFeedback(INITIAL_FEEDBACK_STATE);
     setCredentialPreviewOverrides({});
-  }, [activeTenantId]);
+  }, [activeCastId]);
 
   const mailchannelsAccountIdPreview =
     credentialPreviewOverrides.mailchannelsAccountId ??
@@ -517,85 +517,85 @@ export function TenantsRoute() {
     <section className="stack">
       <article className="panel">
         <div className="section-header">
-          <h2>Tenants</h2>
+          <h2>Casts 🦀🦀🦀</h2>
           <p className="muted-copy">
-            Tenants isolate users, credentials, and operational activity.
+            Casts isolate users, credentials, and operational activity.
           </p>
         </div>
 
-        {tenants.isLoading && (
+        {casts.isLoading && (
           <p className="status-pill info" role="status" aria-live="polite">
-            Loading tenants...
+            Loading casts...
           </p>
         )}
-        {tenants.error && (
+        {casts.error && (
           <div className="status-banner error" role="alert">
-            <p>Could not load tenants: {tenants.error.message}</p>
+            <p>Could not load casts: {casts.error.message}</p>
             <div className="status-actions">
-              <button type="button" className="button-secondary" onClick={() => tenants.refetch()}>
+              <button type="button" className="button-secondary" onClick={() => casts.refetch()}>
                 Retry
               </button>
             </div>
           </div>
         )}
-        {tenantSuccess && (
+        {castSuccess && (
           <p className="status-pill success" role="status" aria-live="polite">
-            {tenantSuccess}
+            {castSuccess}
           </p>
         )}
-        {showFirstTenantForm && createTenant.error && (
+        {showFirstCastForm && createCast.error && (
           <p className="status-pill error" role="alert">
-            {createTenant.error.message}
+            {createCast.error.message}
           </p>
         )}
 
-        {hasTenants && (
-          <div className="tenant-summary">
-            {selectedTenant ? (
-              <div className="tenant-summary-row">
-                <span className="tenant-summary-name">{selectedTenant.name}</span>
-                <span className="tag">{selectedTenant.role}</span>
+        {hasCasts && (
+          <div className="cast-summary">
+            {selectedCast ? (
+              <div className="cast-summary-row">
+                <span className="cast-summary-name">{selectedCast.name}</span>
+                <span className="tag">{selectedCast.role}</span>
               </div>
             ) : (
               <p className="hint-message">
-                Select a tenant from the header tenant menu to continue.
+                Select a cast from the header cast menu to continue.
               </p>
             )}
           </div>
         )}
 
-        {showFirstTenantForm && (
+        {showFirstCastForm && (
           <div className="form-grid">
             <p className="hint-message">
-              No tenants yet. Create your first tenant to begin managing providers.
+              No casts yet. Create your first cast to begin managing providers.
             </p>
             <label>
-              New tenant name
+              New cast name
               <input
-                value={tenantName}
+                value={castName}
                 onChange={(event) => {
-                  setTenantSuccess(null);
-                  setTenantName(event.target.value);
+                  setCastSuccess(null);
+                  setCastName(event.target.value);
                 }}
                 placeholder="acme-mail"
               />
             </label>
-            {createTenantDisabledReason && (
-              <p className="hint-message">{createTenantDisabledReason}</p>
+            {createCastDisabledReason && (
+              <p className="hint-message">{createCastDisabledReason}</p>
             )}
             <div className="button-row">
               <button
                 type="button"
-                onClick={() => createTenant.mutate({ name: tenantName.trim() })}
-                disabled={createTenant.isPending || createTenantDisabledReason !== null}
+                onClick={() => createCast.mutate({ name: castName.trim() })}
+                disabled={createCast.isPending || createCastDisabledReason !== null}
               >
-                {createTenant.isPending ? "Creating Tenant..." : "Create Tenant"}
+                {createCast.isPending ? "Creating Cast..." : "Create Cast"}
               </button>
               <button
                 type="button"
                 className="button-secondary"
-                onClick={() => setTenantName("")}
-                disabled={createTenant.isPending || tenantName.length === 0}
+                onClick={() => setCastName("")}
+                disabled={createCast.isPending || castName.length === 0}
               >
                 Clear
               </button>
@@ -608,7 +608,7 @@ export function TenantsRoute() {
         <div className="section-header">
           <h2>Provider Connections</h2>
           <p className="muted-copy">
-            Store provider credentials for the selected tenant only.
+            Store provider credentials for the selected cast only.
           </p>
         </div>
 
@@ -723,7 +723,7 @@ export function TenantsRoute() {
                 type="button"
                 onClick={() =>
                   connectMailchannels.mutate({
-                    tenantId: activeTenantId ?? "",
+                    castId: activeCastId ?? "",
                     accountId: mailchannelsNeedsAccountIdInput
                       ? mailchannelsAccountId.trim()
                       : undefined,
@@ -800,7 +800,7 @@ export function TenantsRoute() {
                 type="button"
                 onClick={() =>
                   connectAgentmail.mutate({
-                    tenantId: activeTenantId ?? "",
+                    castId: activeCastId ?? "",
                     apiKey: agentmailApiKey.trim(),
                   })
                 }

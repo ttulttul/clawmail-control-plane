@@ -1,4 +1,4 @@
-import { useActiveTenant } from "../hooks/use-active-tenant";
+import { useActiveCast } from "../hooks/use-active-cast";
 import { trpc } from "../lib/trpc";
 
 function formatTimestamp(value: string | number): string {
@@ -11,22 +11,22 @@ function formatTimestamp(value: string | number): string {
 }
 
 export function AuditRoute() {
-  const { activeTenantId } = useActiveTenant();
+  const { activeCastId } = useActiveCast();
 
   const audit = trpc.logs.audit.useQuery(
     {
-      tenantId: activeTenantId ?? "",
+      castId: activeCastId ?? "",
       limit: 100,
     },
-    { enabled: Boolean(activeTenantId) },
+    { enabled: Boolean(activeCastId) },
   );
 
-  if (!activeTenantId) {
+  if (!activeCastId) {
     return (
       <section className="panel">
-        <h2>Select a tenant</h2>
+        <h2>Select a Cast 🦀🦀🦀</h2>
         <p className="muted-copy">
-          Choose a tenant to inspect the audit timeline.
+          Choose a cast to inspect the audit timeline.
         </p>
       </section>
     );
@@ -78,7 +78,7 @@ export function AuditRoute() {
           {audit.data?.length === 0 && (
             <tr>
               <td colSpan={3} className="empty-message">
-                No audit entries yet for this tenant.
+                No audit entries yet for this cast.
               </td>
             </tr>
           )}

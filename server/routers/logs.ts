@@ -3,13 +3,13 @@ import { z } from "zod";
 
 import { auditLog, sendLog, webhookEvents } from "../../drizzle/schema.js";
 import { parseRecord, parseStringArray } from "../lib/json-codec.js";
-import { createRouter, tenantMemberProcedure } from "../trpc.js";
+import { createRouter, castMemberProcedure } from "../trpc.js";
 
 export const logsRouter = createRouter({
-  sends: tenantMemberProcedure
+  sends: castMemberProcedure
     .input(
       z.object({
-        tenantId: z.string().uuid(),
+        castId: z.string().uuid(),
         limit: z.number().int().min(1).max(200).default(50),
         instanceId: z.string().uuid().optional(),
       }),
@@ -18,9 +18,9 @@ export const logsRouter = createRouter({
       const rows = await ctx.db.query.sendLog.findMany({
         where:
           input.instanceId === undefined
-            ? eq(sendLog.tenantId, input.tenantId)
+            ? eq(sendLog.castId, input.castId)
             : and(
-                eq(sendLog.tenantId, input.tenantId),
+                eq(sendLog.castId, input.castId),
                 eq(sendLog.instanceId, input.instanceId),
               ),
         orderBy: [desc(sendLog.createdAt)],
@@ -39,16 +39,16 @@ export const logsRouter = createRouter({
       }));
     }),
 
-  events: tenantMemberProcedure
+  events: castMemberProcedure
     .input(
       z.object({
-        tenantId: z.string().uuid(),
+        castId: z.string().uuid(),
         limit: z.number().int().min(1).max(200).default(50),
       }),
     )
     .query(async ({ ctx, input }) => {
       const rows = await ctx.db.query.webhookEvents.findMany({
-        where: eq(webhookEvents.tenantId, input.tenantId),
+        where: eq(webhookEvents.castId, input.castId),
         orderBy: [desc(webhookEvents.receivedAt)],
         limit: input.limit,
       });
@@ -63,16 +63,16 @@ export const logsRouter = createRouter({
       }));
     }),
 
-  audit: tenantMemberProcedure
+  audit: castMemberProcedure
     .input(
       z.object({
-        tenantId: z.string().uuid(),
+        castId: z.string().uuid(),
         limit: z.number().int().min(1).max(200).default(50),
       }),
     )
     .query(async ({ ctx, input }) => {
       const rows = await ctx.db.query.auditLog.findMany({
-        where: eq(auditLog.tenantId, input.tenantId),
+        where: eq(auditLog.castId, input.castId),
         orderBy: [desc(auditLog.timestamp)],
         limit: input.limit,
       });

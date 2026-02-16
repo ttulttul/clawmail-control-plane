@@ -60,7 +60,7 @@ export function AuthGate() {
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [tenantName, setTenantName] = useState("");
+  const [castName, setCastName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [oauthErrorMessage, setOauthErrorMessage] = useState<string | null>(() =>
     readOAuthError(),
@@ -74,7 +74,7 @@ export function AuthGate() {
     onSuccess: async () => {
       setSuccessMessage("Signed in successfully. Redirecting to your workspace...");
       await utils.auth.me.invalidate();
-      await utils.tenants.list.invalidate();
+      await utils.casts.list.invalidate();
     },
   });
 
@@ -83,20 +83,20 @@ export function AuthGate() {
       setSuccessMessage(null);
     },
     onSuccess: async (_, input) => {
-      const tenantLabel =
-        input.tenantName && input.tenantName.trim().length > 0
-          ? ` and created tenant "${input.tenantName.trim()}"`
+      const castLabel =
+        input.castName && input.castName.trim().length > 0
+          ? ` and created cast "${input.castName.trim()}"`
           : "";
-      setSuccessMessage(`Account created${tenantLabel}. Redirecting to your workspace...`);
+      setSuccessMessage(`Account created${castLabel}. Redirecting to your workspace...`);
       await utils.auth.me.invalidate();
-      await utils.tenants.list.invalidate();
+      await utils.casts.list.invalidate();
     },
   });
 
   const submitDisabledReason = getAuthSubmitDisabledReason(mode, {
     email,
     password,
-    tenantName,
+    castName,
   });
   const isSubmitting = login.isPending || register.isPending;
   const pendingMessage = login.isPending
@@ -128,7 +128,7 @@ export function AuthGate() {
     register.mutate({
       email: email.trim(),
       password,
-      tenantName: tenantName.trim(),
+      castName: castName.trim(),
     });
   }
 
@@ -154,7 +154,7 @@ export function AuthGate() {
           <p className="auth-kicker">Secure Access</p>
           <h1>Access your workspace</h1>
           <p className="muted-copy">
-            Operate tenants, monitor delivery, and manage agent gateway controls.
+            Operate casts, monitor delivery, and manage agent gateway controls.
           </p>
 
           <div className="auth-sso-grid">
@@ -245,10 +245,10 @@ export function AuthGate() {
             </label>
             {mode === "register" && (
               <label>
-                Tenant name
+                Cast name
                 <input
-                  value={tenantName}
-                  onChange={(event) => setTenantName(event.target.value)}
+                  value={castName}
+                  onChange={(event) => setCastName(event.target.value)}
                   placeholder="acme-mail"
                 />
               </label>
@@ -306,7 +306,7 @@ export function AuthGate() {
 
           <p className="auth-footer">
             If you are new here, register your account first, then connect providers from
-            the Tenants page.
+            the Casts page.
           </p>
         </article>
       </div>
