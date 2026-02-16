@@ -140,6 +140,11 @@ tests/                # unit/integration/component tests
 ```
 
 ## Recent refactors
+- 2026-02-16: consolidated tenant creation and selection UX:
+  - Added `Create tenant...` to the workspace header tenant selector and wired it to a create-tenant modal flow.
+  - Removed duplicated tenant listing from the `/tenants` panel and replaced it with a selected-tenant summary (name + role tag).
+  - Kept inline tenant creation in `/tenants` only for first-time setup when no tenants exist.
+  - Added UI coverage in `tests/tenant-selector.test.tsx` and `tests/tenants-route.test.tsx`.
 - 2026-02-16: restored live provider credential validation behavior on `/tenants`:
   - Credential validation now always uses live MailChannels/AgentMail connectors in non-test environments, even when `CONNECTOR_MODE=mock` is used for provisioning flows.
   - This prevents invalid provider keys from being accepted during tenant connection setup.

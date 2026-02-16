@@ -306,4 +306,32 @@ describe("TenantsRoute", () => {
       screen.getByPlaceholderText("Enter a new MailChannels account id"),
     ).not.toHaveAttribute("readonly");
   });
+
+  test("shows selected tenant summary and hides tenant creation form when tenants exist", () => {
+    render(<TenantsRoute />);
+
+    expect(screen.getByText("Tenant One")).toBeInTheDocument();
+    expect(screen.getByText("owner")).toBeInTheDocument();
+    expect(screen.queryByLabelText("New tenant name")).not.toBeInTheDocument();
+  });
+
+  test("shows first-tenant creation form when no tenants exist", () => {
+    mocks.useActiveTenant.mockReturnValue({
+      activeTenantId: null,
+      setActiveTenantId: vi.fn(),
+    });
+    mocks.listUseQuery.mockReturnValue({
+      isLoading: false,
+      error: null,
+      data: [],
+      refetch: vi.fn(),
+    });
+
+    render(<TenantsRoute />);
+
+    expect(
+      screen.getByText("No tenants yet. Create your first tenant to begin managing providers."),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("New tenant name")).toBeInTheDocument();
+  });
 });

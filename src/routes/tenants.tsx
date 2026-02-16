@@ -111,7 +111,7 @@ function getCredentialInputClass(
 }
 
 export function TenantsRoute() {
-  const { activeTenantId } = useActiveTenant();
+  const { activeTenantId, setActiveTenantId } = useActiveTenant();
   const [tenantName, setTenantName] = useState("");
   const [mailchannelsAccountId, setMailchannelsAccountId] = useState("");
   const [mailchannelsApiKey, setMailchannelsApiKey] = useState("");
@@ -161,8 +161,9 @@ export function TenantsRoute() {
     onMutate: () => {
       setTenantSuccess(null);
     },
-    onSuccess: async (_, input) => {
+    onSuccess: async (result, input) => {
       await utils.tenants.list.invalidate();
+      setActiveTenantId(result.tenantId);
       setTenantName("");
       setTenantSuccess(`Tenant "${input.name.trim()}" created.`);
     },
@@ -327,6 +328,17 @@ export function TenantsRoute() {
 
     return null;
   }, [activeTenantId]);
+
+  const selectedTenant = useMemo(() => {
+    if (!tenants.data || !activeTenantId) {
+      return null;
+    }
+
+    return tenants.data.find((tenant) => tenant.id === activeTenantId) ?? null;
+  }, [tenants.data, activeTenantId]);
+
+  const hasTenants = (tenants.data?.length ?? 0) > 0;
+  const showFirstTenantForm = !tenants.isLoading && !tenants.error && !hasTenants;
 
   useEffect(() => {
     return () => {
@@ -531,59 +543,65 @@ export function TenantsRoute() {
             {tenantSuccess}
           </p>
         )}
-        {createTenant.error && (
+        {showFirstTenantForm && createTenant.error && (
           <p className="status-pill error" role="alert">
             {createTenant.error.message}
           </p>
         )}
 
-        <ul className="entity-list">
-          {tenants.data?.map((tenant) => (
-            <li key={tenant.id} className={tenant.id === activeTenantId ? "active" : ""}>
-              <span>{tenant.name}</span>
-              <span className="tag">{tenant.role}</span>
-            </li>
-          ))}
-          {tenants.data?.length === 0 && (
-            <li className="empty-message">
-              No tenants yet. Create one below to begin managing providers.
-            </li>
-          )}
-        </ul>
-
-        <div className="form-grid">
-          <label>
-            New tenant name
-            <input
-              value={tenantName}
-              onChange={(event) => {
-                setTenantSuccess(null);
-                setTenantName(event.target.value);
-              }}
-              placeholder="acme-mail"
-            />
-          </label>
-          {createTenantDisabledReason && (
-            <p className="hint-message">{createTenantDisabledReason}</p>
-          )}
-          <div className="button-row">
-            <button
-              type="button"
-              onClick={() => createTenant.mutate({ name: tenantName.trim() })}
-              disabled={createTenant.isPending || createTenantDisabledReason !== null}
-            >
-              {createTenant.isPending ? "Creating Tenant..." : "Create Tenant"}
-            </button>
-            <button
-              type="button"
-              className="button-secondary"
-              onClick={() => setTenantName("")}
-              disabled={createTenant.isPending || tenantName.length === 0}
-            >
-              Clear
-            </button>
+        {hasTenants && (
+          <div className="tenant-summary">
+            {selectedTenant ? (
+              <div className="tenant-summary-row">
+                <span className="tenant-summary-name">{selectedTenant.name}</span>
+                <span className="tag">{selectedTenant.role}</span>
+              </div>
+            ) : (
+              <p className="hint-message">
+                Select a tenant from the header tenant menu to continue.
+              </p>
+            )}
           </div>
-        </div>
+        )}
+
+        {showFirstTenantForm && (
+          <div className="form-grid">
+            <p className="hint-message">
+              No tenants yet. Create your first tenant to begin managing providers.
+            </p>
+            <label>
+              New tenant name
+              <input
+                value={tenantName}
+                onChange={(event) => {
+                  setTenantSuccess(null);
+                  setTenantName(event.target.value);
+                }}
+                placeholder="acme-mail"
+              />
+            </label>
+            {createTenantDisabledReason && (
+              <p className="hint-message">{createTenantDisabledReason}</p>
+            )}
+            <div className="button-row">
+              <button
+                type="button"
+                onClick={() => createTenant.mutate({ name: tenantName.trim() })}
+                disabled={createTenant.isPending || createTenantDisabledReason !== null}
+              >
+                {createTenant.isPending ? "Creating Tenant..." : "Create Tenant"}
+              </button>
+              <button
+                type="button"
+                className="button-secondary"
+                onClick={() => setTenantName("")}
+                disabled={createTenant.isPending || tenantName.length === 0}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        )}
       </article>
 
       <article className="panel">
