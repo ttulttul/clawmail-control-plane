@@ -135,6 +135,11 @@ tests/                # unit/integration/component tests
 ```
 
 ## Recent refactors
+- 2026-02-16: consolidated tenant creation and selection UX:
+  - Added `Create tenant...` to the workspace header tenant selector and wired it to a create-tenant modal flow.
+  - Removed duplicated tenant listing from the `/tenants` panel and replaced it with a selected-tenant summary (name + role tag).
+  - Kept inline tenant creation in `/tenants` only for first-time setup when no tenants exist.
+  - Added UI coverage in `tests/tenant-selector.test.tsx` and `tests/tenants-route.test.tsx`.
 - 2026-02-15: moved credential rejection copy into the rejected input field:
   - During failed provider validation, the affected input now displays inline text such as `❌ Credential was rejected by MailChannels.` inside the input itself.
   - Removed separate rejection text rows below inputs to keep feedback scoped to the exact rejected credential field.

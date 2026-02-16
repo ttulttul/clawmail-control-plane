@@ -469,6 +469,31 @@ label {
   font-weight: 700;
 }
 
+.tenant-create-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(24, 39, 69, 0.4);
+}
+
+.tenant-create-dialog {
+  width: min(420px, 100%);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 1rem;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.tenant-create-dialog .button-row {
+  justify-content: flex-end;
+}
+
 .page-content {
   padding: 1.3rem 1.4rem 1.6rem;
   display: grid;
@@ -651,6 +676,26 @@ label {
 .form-grid {
   display: grid;
   gap: 0.75rem;
+}
+
+.tenant-summary {
+  margin-top: 0.75rem;
+}
+
+.tenant-summary-row {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fafbfd;
+  padding: 0.65rem 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.tenant-summary-name {
+  font-weight: 600;
+  color: var(--text-strong);
 }
 
 .credential-input-shell {
