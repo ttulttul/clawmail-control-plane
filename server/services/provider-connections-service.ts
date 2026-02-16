@@ -45,6 +45,54 @@ export async function validateAgentmailConnectionCredentials(
   );
 }
 
+const CREDENTIAL_PREVIEW_PREFIX_LENGTH = 6;
+
+function buildCredentialPreview(value: string): string | null {
+  const normalizedValue = value.trim();
+  if (normalizedValue.length === 0) {
+    return null;
+  }
+
+  const prefix = normalizedValue.slice(0, CREDENTIAL_PREVIEW_PREFIX_LENGTH);
+  return `${prefix}...`;
+}
+
+export interface ProviderCredentialPreviews {
+  mailchannelsAccountId: string | null;
+  mailchannelsParentApiKey: string | null;
+  agentmailApiKey: string | null;
+}
+
+export async function getProviderCredentialPreviews(
+  db: DatabaseClient,
+  tenantId: string,
+): Promise<ProviderCredentialPreviews> {
+  const [mailchannelsConnection, agentmailConnection] = await Promise.all([
+    db.query.mailchannelsConnections.findFirst({
+      where: eq(mailchannelsConnections.tenantId, tenantId),
+    }),
+    db.query.agentmailConnections.findFirst({
+      where: eq(agentmailConnections.tenantId, tenantId),
+    }),
+  ]);
+
+  return {
+    mailchannelsAccountId: mailchannelsConnection
+      ? buildCredentialPreview(mailchannelsConnection.mailchannelsAccountId)
+      : null,
+    mailchannelsParentApiKey: mailchannelsConnection
+      ? buildCredentialPreview(
+        decryptSecret(mailchannelsConnection.encryptedParentApiKey),
+      )
+      : null,
+    agentmailApiKey: agentmailConnection
+      ? buildCredentialPreview(
+        decryptSecret(agentmailConnection.encryptedAgentmailApiKey),
+      )
+      : null,
+  };
+}
+
 export async function requireMailchannelsConnection(
   db: DatabaseClient,
   tenantId: string,
@@ -91,29 +139,61 @@ export async function saveMailchannelsConnection(
   db: DatabaseClient,
   input: {
     tenantId: string;
-    mailchannelsAccountId: string;
-    parentApiKey: string;
+    mailchannelsAccountId?: string;
+    parentApiKey?: string;
     webhookEndpointConfig?: Record<string, unknown>;
   },
 ): Promise<void> {
-  await validateMailchannelsConnectionCredentials({
-    parentApiKey: input.parentApiKey,
-  });
-
   const existing = await db.query.mailchannelsConnections.findFirst({
     where: eq(mailchannelsConnections.tenantId, input.tenantId),
   });
 
-  const encryptedParentApiKey = encryptSecret(input.parentApiKey);
-  const webhookEndpointConfig = input.webhookEndpointConfig
-    ? safeJsonStringify(input.webhookEndpointConfig, "{}")
-    : null;
+  const normalizedAccountId = input.mailchannelsAccountId?.trim();
+  const normalizedParentApiKey = input.parentApiKey?.trim();
+  const hasNewParentApiKey = Boolean(
+    normalizedParentApiKey && normalizedParentApiKey.length > 0,
+  );
+
+  const nextAccountId = normalizedAccountId && normalizedAccountId.length > 0
+    ? normalizedAccountId
+    : existing?.mailchannelsAccountId;
+
+  const nextParentApiKey = normalizedParentApiKey && normalizedParentApiKey.length > 0
+    ? normalizedParentApiKey
+    : existing
+      ? decryptSecret(existing.encryptedParentApiKey)
+      : null;
+
+  if (!nextAccountId) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "MailChannels account ID is required.",
+    });
+  }
+
+  if (!nextParentApiKey) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "MailChannels parent API key is required.",
+    });
+  }
+
+  if (!existing || hasNewParentApiKey) {
+    await validateMailchannelsConnectionCredentials({
+      parentApiKey: nextParentApiKey,
+    });
+  }
+
+  const encryptedParentApiKey = encryptSecret(nextParentApiKey);
+  const webhookEndpointConfig = input.webhookEndpointConfig === undefined
+    ? existing?.webhookEndpointConfig ?? null
+    : safeJsonStringify(input.webhookEndpointConfig, "{}");
 
   if (!existing) {
     await db.insert(mailchannelsConnections).values({
       id: createId(),
       tenantId: input.tenantId,
-      mailchannelsAccountId: input.mailchannelsAccountId,
+      mailchannelsAccountId: nextAccountId,
       encryptedParentApiKey,
       webhookEndpointConfig,
     });
@@ -123,7 +203,7 @@ export async function saveMailchannelsConnection(
   await db
     .update(mailchannelsConnections)
     .set({
-      mailchannelsAccountId: input.mailchannelsAccountId,
+      mailchannelsAccountId: nextAccountId,
       encryptedParentApiKey,
       webhookEndpointConfig,
       updatedAt: Date.now(),

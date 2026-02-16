@@ -3,47 +3,27 @@
 Generated: 2026-02-15
 
 ## Current Backlog
-1. [ ] Consolidate authentication entrypoints behind an auth module boundary.
-- Why: Auth logic is split across tRPC (`server/routers/auth.ts`) and Hono routes (`server/routes/oauth.ts`), which risks duplicated policy handling.
-- Proposed change: Introduce `server/auth/flows/` with shared functions for session creation, redirect/error mapping, and account linking.
+1. [ ] Extract tenant credential field orchestration from `src/routes/tenants.tsx`.
+- Why: The route currently combines tenant CRUD, provider input lock/edit transitions, inline feedback timing, and mutation behavior in one file.
+- Proposed change: Split into focused panels (`TenantManagementPanel`, `ProviderConnectionsPanel`) and reusable credential-field components.
 
-2. [ ] Introduce a synchronous DB transaction helper for account-linking paths.
-- Why: SQLite with `better-sqlite3` is synchronous; async call patterns can bypass transactional guarantees.
-- Proposed change: Add a repository helper for auth-critical operations inside sync-safe transactional boundaries.
+2. [ ] Add a reusable hook for timed validation feedback states.
+- Why: Success and error state transitions depend on multiple timeout refs and repeated state updates.
+- Proposed change: Introduce `useTimedCredentialFeedback` to standardize `validating -> success/error -> idle` transitions with cleanup.
 
-3. [ ] Extract provider API calls from `server/routes/oauth.ts` into typed provider clients.
-- Why: OAuth route currently handles HTTP calls, payload validation, and control flow in one file.
-- Proposed change: Move Google/GitHub fetch/parsing into `server/services/oauth-providers/{google,github}.ts` with typed contracts.
+3. [ ] Consolidate provider rejection copy into a shared UI constant map.
+- Why: Provider-specific rejection strings are now inline in route logic.
+- Proposed change: Move copy to a dedicated typed config (`src/lib/provider-feedback.ts`) to centralize wording and reduce duplication risk.
 
-4. [ ] Replace stringly-typed OAuth error codes with a typed enum map shared by server and UI.
-- Why: Error keys are repeated in route handlers and frontend message maps.
-- Proposed change: Export a literal error-code map consumed by `server/routes/oauth.ts` and `src/components/auth-gate.tsx`.
+4. [ ] Isolate validation connector selection policy.
+- Why: Credential validation intentionally uses live connectors outside `test`; this policy is currently embedded in one service.
+- Proposed change: Add `server/connectors/validation-factory.ts` and use it from validation service for clearer intent and easier testing.
 
-5. [ ] Split `AuthGate` into local-credentials and SSO subcomponents.
-- Why: `src/components/auth-gate.tsx` manages local auth form state, OAuth launch logic, and error rendering together.
-- Proposed change: Create `AuthGateLocalForm` and `AuthGateSsoButtons` with a small parent orchestrator.
-
-6. [ ] Add integration tests for OAuth callback handlers with mocked provider responses.
-- Why: Current tests validate parsing/account linking but not callback end-to-end behavior.
-- Proposed change: Add route-level tests for `/auth/oauth/:provider/callback` with mocked fetch and cookie/redirect assertions.
-
-7. [ ] Plan migration away from deprecated Lucia packages.
-- Why: Current dependency versions emit deprecation warnings during install.
-- Proposed change: Track and execute a phased migration plan that preserves cookie semantics and DB compatibility.
-
-8. [ ] Extract shared AgentMail inbox access resolution from `server/services/gateway-service.ts`.
-- Why: `listInboxThreads`, `getInboxMessage`, and `replyInboxMessage` duplicate inbox + credential resolution flow.
-- Proposed change: Add `loadInboxAccessOrThrow(db, tenantId, instanceId)` and centralize error mapping.
-
-9. [ ] Add scoped middleware helpers for `/agent` endpoints in `server/agent/routes.ts`.
-- Why: Agent routes repeat auth null checks and scope checks (`send`, `read_inbox`).
-- Proposed change: Introduce reusable guards such as `requireAuthenticatedAgent` and `requireAgentScope("send")`.
+5. [ ] Add schema-driven parsing for provider listing endpoints.
+- Why: `listSubaccounts` and `listPods` parse flexible provider payloads with manual key checks.
+- Proposed change: Use Zod schemas with tolerant transforms to make accepted payload shapes explicit and testable.
 
 ## Completed In This Branch
-1. [x] Split provider orchestration into focused modules (`provider-connections`, `mailchannels-provisioning`, `agentmail-provisioning`, `provider-credentials`) and converted `provider-service.ts` to a compatibility barrel.
-2. [x] Introduced typed JSON codecs (`server/lib/json-codec.ts`) and replaced ad hoc parse/stringify calls in policy, token, send-log, audit-log, and domain flows.
-3. [x] Added composable tRPC authorization wrappers (`tenantMemberProcedure`, `tenantOperatorProcedure`, `tenantAdminProcedure`, `instanceScopedProcedure`, `instanceOperatorProcedure`) and removed repeated inline checks from routers.
-4. [x] Added provider error mapping (`ProviderHttpError` + `withProviderErrorMapping`) to convert provider HTTP failures into explicit `TRPCError` codes.
-5. [x] Split `src/routes/instances.tsx` responsibilities into focused components (`InstanceCreateForm`, `InstanceList`, `InstanceActions`, `GatewayTokenPanel`) while preserving UX feedback patterns.
-6. [x] Moved scheduler job behavior into typed handler modules under `server/jobs/handlers/*`, keeping `server/jobs/scheduler.ts` focused on queue orchestration.
-7. [x] Added explicit gateway policy integration coverage for required headers, per-minute limits, daily caps, and allow/deny domain matching.
+1. [x] Enforced live provider API validation for credentials in non-test runtime.
+2. [x] Implemented inline credential validation UX with shimmering processing, success, and failure overlays.
+3. [x] Removed raw provider error payload rendering and replaced it with concise provider-specific rejection feedback text.

@@ -120,4 +120,62 @@ describe("tenant boundary", () => {
       code: "UNAUTHORIZED",
     });
   });
+
+  test("returns redacted provider credential previews only to tenant members", async () => {
+    const anonymousCaller = modules.appRouter.createCaller(
+      buildContext(null, modules.createRequestLogger("anon-preview")),
+    );
+
+    const owner = await anonymousCaller.auth.register({
+      email: "owner-preview@example.com",
+      password: "super-secure-password-owner-preview",
+    });
+
+    const outsider = await anonymousCaller.auth.register({
+      email: "outsider-preview@example.com",
+      password: "super-secure-password-outsider-preview",
+    });
+
+    const ownerCaller = modules.appRouter.createCaller(
+      buildContext(
+        createAuth(owner.userId),
+        modules.createRequestLogger("owner-preview"),
+      ),
+    );
+
+    const outsiderCaller = modules.appRouter.createCaller(
+      buildContext(
+        createAuth(outsider.userId),
+        modules.createRequestLogger("outsider-preview"),
+      ),
+    );
+
+    const { tenantId } = await ownerCaller.tenants.create({
+      name: "Preview Tenant",
+    });
+
+    await ownerCaller.tenants.connectMailchannels({
+      tenantId,
+      accountId: "mcacct_123456",
+      parentApiKey: "secret-parent-key",
+    });
+
+    await ownerCaller.tenants.connectAgentmail({
+      tenantId,
+      apiKey: "agentmail-secret-key",
+    });
+
+    const preview = await ownerCaller.tenants.providerStatus({ tenantId });
+    expect(preview).toEqual({
+      mailchannelsAccountId: "mcacct...",
+      mailchannelsParentApiKey: "secret...",
+      agentmailApiKey: "agentm...",
+    });
+
+    await expect(
+      outsiderCaller.tenants.providerStatus({ tenantId }),
+    ).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
+  });
 });

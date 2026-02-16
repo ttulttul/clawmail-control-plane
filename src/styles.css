@@ -653,12 +653,75 @@ label {
   gap: 0.75rem;
 }
 
-.compact-gap {
-  margin-bottom: 0.8rem;
+.credential-input-shell {
+  position: relative;
 }
 
-.error-message {
-  color: var(--danger);
+.credential-input.configured {
+  background: #eef2f8;
+  border-color: #c2cee3;
+  color: #5f6f8e;
+  cursor: pointer;
+  caret-color: transparent;
+}
+
+.credential-input.configured:hover {
+  background: #e8edf6;
+}
+
+.credential-input.is-validating {
+  cursor: progress;
+  color: #6c7c97;
+  border-color: #c2cee3;
+  background:
+    linear-gradient(
+      110deg,
+      #e9eef7 8%,
+      #f5f8fd 18%,
+      #e9eef7 33%
+    );
+  background-size: 220% 100%;
+  animation: credential-shimmer 1.1s linear infinite;
+}
+
+.credential-input.is-verified {
+  border-color: #94cfae;
+  background: #e8f7ee;
+  color: #215e3c;
+}
+
+.credential-input.is-invalid {
+  border-color: #e0a7b4;
+  background: #fff0f3;
+  color: #8f3342;
+}
+
+.credential-input.has-feedback-icon {
+  padding-left: 2.05rem;
+}
+
+.credential-feedback-icon {
+  position: absolute;
+  left: 0.68rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.93rem;
+  line-height: 1;
+  pointer-events: none;
+}
+
+@keyframes credential-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.compact-gap {
+  margin-bottom: 0.8rem;
 }
 
 .entity-list,

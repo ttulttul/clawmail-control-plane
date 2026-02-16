@@ -135,11 +135,30 @@ tests/                # unit/integration/component tests
 ```
 
 ## Recent refactors
-- 2026-02-15: validate provider credentials during connection setup:
-  - Added `validateCredentials` methods to MailChannels and AgentMail connector interfaces with live and mock implementations
-  - `saveMailchannelsConnection` and `saveAgentmailConnection` now verify credentials before persisting encrypted secrets
-  - Updated provider connection status messaging in `src/routes/tenants.tsx` to indicate validation is part of the save flow
-  - Added unit coverage in `tests/provider-connection-credentials.test.ts`
+- 2026-02-15: moved credential rejection copy into the rejected input field:
+  - During failed provider validation, the affected input now displays inline text such as `❌ Credential was rejected by MailChannels.` inside the input itself.
+  - Removed separate rejection text rows below inputs to keep feedback scoped to the exact rejected credential field.
+- 2026-02-15: clarified inline credential rejection feedback on `/tenants`:
+  - Added explicit provider-specific rejection copy alongside the `❌` indicator (for example, “Credential was rejected by MailChannels.”).
+  - Kept provider error payloads hidden from the UI to avoid exposing raw HTML/error-body output.
+  - Continued using the extended failed-validation display window (3x success duration) before returning to editable state.
+- 2026-02-15: refined credential validation failure UX on `/tenants`:
+  - Removed rendering of raw provider error bodies from credential fields (prevents provider HTML/error payload leakage in UI).
+  - Kept failure feedback inline via `❌` input overlay only, without persistent `.error-message` blocks.
+  - Extended failed-validation inline feedback duration to 3x the success duration so rejection is easier to notice.
+- 2026-02-15: added credential validation-first UX for tenant provider connections:
+  - Added provider credential validation in `server/services/provider-connections-service.ts`, enforced before tenant credential persistence.
+  - Validation now performs direct provider API calls before persistence:
+    - MailChannels parent key via sub-account listing (`GET /sub-account`)
+    - AgentMail API key via pod listing (`GET /pods`)
+  - Validation uses live provider connectors in non-test runtime so invalid real credentials fail validation even if provisioning mode is otherwise mocked.
+  - Reworked `src/routes/tenants.tsx` credential flows to show per-input validating shimmer states, inline success (`✅`) and failure (`❌`) overlays, and post-validation transitions to redacted previews or editable re-entry.
+  - Added route-level UI coverage for these validation transitions in `tests/tenants-route.test.tsx`.
+- 2026-02-15: improved tenant credential UX for configured provider connections:
+  - Added `tenants.providerStatus` query to return redacted credential previews (prefix + ellipses) for MailChannels and AgentMail.
+  - Updated `src/routes/tenants.tsx` to show grey read-only preview fields that switch to replacement mode when clicked.
+  - Added timed fade-out + auto-dismiss behavior for provider success pills and extra spacing below the success state.
+  - Added coverage in `tests/tenant-boundary.test.ts` and `tests/tenants-route.test.tsx`.
 - 2026-02-15: split provider orchestration into focused services:
   - `server/services/provider-connections-service.ts`
   - `server/services/mailchannels-provisioning-service.ts`
