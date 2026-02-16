@@ -1,0 +1,37 @@
+---
+config:
+  layout: elk
+  look: neo
+  theme: redux
+---
+flowchart LR
+ subgraph Users["Control Plane Users"]
+        Risk["Risk 🦞🦞🦞"]
+        U1["U1: Owner"]
+        U2["U2: Admin"]
+        U3["U3: Operator"]
+        U4["U4: Viewer"]
+  end
+ subgraph Clients["Agents"]
+        MarketingBot["Marketing 🦞"]
+        CEOBot["CEO 🦞"]
+        PMBot["Product 🦞"]
+        SEOBot["SEO 🦞"]
+        VideoBot["Video Producer 🦞"]
+  end
+    U1 -- owns --> Risk
+    U2 -- administers --> Risk
+    U3 -- operates --> Risk
+    U4 -- views --> Risk
+    Risk -- owns --> Instance["Instance"]
+    Instance -- enforces --> InstancePolicy["Instance Policies"]
+    Instance -- issues --> GatewayToken["Gateway Tokens"]
+    Instance -- integrates with --> MailChannels["MailChannels Connections"] & AgentMail["AgentMail Connections"]
+    InstancePolicy -- constrains --> GatewayToken
+    InstancePolicy -- governs --> MailChannels & AgentMail
+    MarketingBot -- authenticates with --> GatewayToken
+    CEOBot -- authenticates with --> GatewayToken
+    PMBot -- authenticates with --> GatewayToken
+    SEOBot -- authenticates with --> GatewayToken
+    VideoBot -- authenticates with --> GatewayToken
+    GatewayToken -- grant controlled access to --> MailChannels & AgentMail
