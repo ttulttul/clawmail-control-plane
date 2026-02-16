@@ -2,49 +2,84 @@
 
 # ClawMail Control Plane
 
-Self-hostable email control plane for OpenClaw fleets with tenant isolation, per-instance blast-radius controls, centralized webhook ingestion, and gateway-mode API access.
+Self-hostable email control plane for OpenClaw fleets with tenant isolation,
+per-instance blast-radius controls, centralized webhook ingestion, and
+gateway-mode API access.
+
+## Why This Exists
+OpenClaw agents become high-risk the moment they can interact with email
+directly. They can send at machine speed, contact the wrong recipients, leak
+sensitive context, or continue operating after provider credentials are
+misconfigured or compromised. Inbound email is equally risky: agents can be
+manipulated by malicious or unexpected replies, and operators can lose
+visibility into what influenced agent behavior.
+
+This project exists to put a strict control plane between agents and email
+providers. Instead of handing raw provider keys to agents, operators provision
+tenant-scoped providers, instance-scoped credentials, and short-lived scoped
+gateway tokens. Every send and webhook event is captured, policy-checked, and
+auditable. The result is practical oversight: agents can still use email, but
+within enforced limits and with clear operational accountability.
 
 ## Core Concepts
-- `User`: Represents a human user who needs to control or view bot access to email resources.
-- `Tenant`: The top-level isolation boundary, controlled by a `User`. Provider credentials, instances, policies, inboxes, logs, and audit events are all scoped to a `Tenant`.
-- `User Membership`: A `User` belongs to one or more tenants with a role (`viewer`, `operator`, `admin`, `owner`) that controls what actions they can perform.
-- `Instance`: A logical OpenClaw agent identity inside a tenant. Instances have lifecycle state (`active`, `suspended`, `deprovisioned`) and mode (`gateway` or `direct`).
-- `Instance Policy`: Per-instance guardrails for outbound mail (recipient limits, required headers, allow/deny domain lists, rate limits, and daily caps).
-- `Gateway Token`: A rotatable, instance-scoped secret used by agents to call `/agent/*` endpoints. Only the token hash is stored server-side.
-- `Token Scope`: Permissions attached to a gateway token (for example `send`, `read_inbox`, or `*`) that gate agent capabilities.
-- `MailChannels Connection`: Tenant-level provider credentials used to provision and operate sub-accounts for outbound sending.
-- `MailChannels Sub-account`: Instance-level sending account created under a tenant’s MailChannels parent account, with its own limits and key lifecycle.
-- `AgentMail Connection`: Tenant-level API key used to provision mailbox resources for instances.
-- `AgentMail Pod`: A grouping/container in AgentMail where domains and inboxes are created.
-- `AgentMail Domain`: A domain attached to a pod for mailbox addressing, along with DNS verification records and status.
-- `AgentMail Inbox`: The mailbox mapped to an instance for reading/replying via gateway inbox endpoints.
-- `Webhook Event`: Provider delivery/inbox events ingested into the control plane, deduplicated, and attached to tenant/instance context when available.
-- `Audit Log`: An immutable operator action trail (for example provisioning, token rotation, policy changes) used for oversight and incident review.
+- `User`: A human user who needs to control or view bot access to email
+  resources. **This is you!** Users have one assigned role for each `Tenant`.
+  Many small organizations will have only one `User` who is the administrator
+  of a single `Tenant`, while larger organizations will have many users and
+  more complex tenant management delegation.
+
+- `Tenant`: The top-level email isolation boundary, controlled by one or more
+  `User`'s. Provider credentials, instances, policies, inboxes, logs, and audit
+  events are all scoped to a `Tenant`.
+ 
+- `User Membership`: A `User` belongs to one or more tenants with a role
+  (`viewer`, `operator`, `admin`, `owner`) that controls what actions they can
+  perform.
+
+- `Instance`: A logical OpenClaw agent identity inside a tenant. Instances have
+  lifecycle state (`active`, `suspended`, `deprovisioned`) and mode (`gateway`
+  or `direct`).
+
+- `Instance Policy`: Per-instance guardrails for outbound mail (recipient
+  limits, required headers, allow/deny domain lists, rate limits, and daily
+  caps).
+
+- `Gateway Token`: A rotatable, instance-scoped secret used by agents to call
+  `/agent/*` endpoints. Only the token hash is stored server-side.
+
+- `Token Scope`: Permissions attached to a gateway token (for example `send`,
+  `read_inbox`, or `*`) that gate agent capabilities.
+
+- `MailChannels Connection`: Tenant-level provider credentials used to
+  provision and operate sub-accounts for outbound sending.
+
+- `MailChannels Sub-account`: Instance-level sending account created under a
+  tenant’s MailChannels parent account, with its own limits and key lifecycle.
+
+- `AgentMail Connection`: Tenant-level API key used to provision mailbox
+  resources for instances.
+
+- `AgentMail Pod`: A grouping/container in AgentMail where domains and inboxes
+  are created.
+
+- `AgentMail Domain`: A domain attached to a pod for mailbox addressing, along
+  with DNS verification records and status.
+
+- `AgentMail Inbox`: The mailbox mapped to an instance for reading/replying via
+  gateway inbox endpoints.
+
+- `Webhook Event`: Provider delivery/inbox events ingested into the control
+  plane, deduplicated, and attached to tenant/instance context when available.
+
+- `Audit Log`: An immutable operator action trail (for example provisioning,
+  token rotation, policy changes) used for oversight and incident review.
 
 ## Relationship Diagram
 ![OpenClaw client, tenant, user, and service relationships](docs/images/openclaw-relationships.svg)
 
-This diagram shows the relationships between OpenClaw clients, tenants, users, and services.
+This diagram shows the relationships between OpenClaw clients, tenants, users,
+and services.
 
-## Why This Exists
-OpenClaw agents become high-risk the moment they can interact with email directly. They can send at machine speed, contact the wrong recipients, leak sensitive context, or continue operating after provider credentials are misconfigured or compromised. Inbound email is equally risky: agents can be manipulated by malicious or unexpected replies, and operators can lose visibility into what influenced agent behavior.
-
-This project exists to put a strict control plane between agents and email providers. Instead of handing raw provider keys to agents, operators provision tenant-scoped providers, instance-scoped credentials, and short-lived scoped gateway tokens. Every send and webhook event is captured, policy-checked, and auditable. The result is practical oversight: agents can still use email, but within enforced limits and with clear operational accountability.
-
-## Stack
-- Frontend: Vite + React + TanStack Router
-- Backend: Hono + tRPC
-- Database: SQLite + Drizzle ORM + generated SQL migrations
-- Auth: Lucia session auth + optional Google/GitHub OAuth
-- Tests: Vitest + Testing Library
-
-## UX Standards
-The operator UI follows Nielsen heuristics and *The Design of Everyday Things* principles:
-- Visibility of system status: async actions show loading, success, and failure states.
-- Error prevention and recovery: destructive actions are confirmed; errors include retry paths.
-- Recognition over recall: forms include inline guidance and disable invalid actions early.
-- User control: users can clear inputs, dismiss status states, and retry failed queries.
-- Accessibility: focusable controls, semantic labels, and high-contrast status indicators.
 
 ## Quick Start
 ### Core concepts
@@ -140,6 +175,85 @@ drizzle/              # schema + generated migrations
 tests/                # unit/integration/component tests
 ```
 
+## Local development
+1. Install dependencies:
+```bash
+pnpm install
+```
+2. Ensure native module builds are approved (required for `better-sqlite3`):
+```bash
+pnpm approve-builds
+```
+3. Start backend + frontend:
+```bash
+pnpm run dev
+```
+
+Frontend: http://localhost:5173
+Backend: http://localhost:3000
+
+## Environment variables
+Optional defaults are baked in for local development.
+
+- `PORT` (default: `3000`)
+- `DATABASE_URL` (default: `./data/clawmail.db`)
+- `AUTH_PUBLIC_URL` (optional public app URL used for OAuth callback URLs, e.g. `https://controlplane.example.com`)
+- `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` (optional, required to enable GitHub SSO)
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` (optional, required to enable Google SSO)
+- `APP_ENCRYPTION_KEY` (base64 preferred; dev fallback is used when missing)
+- `CONNECTOR_MODE` (`mock` or `live`, default: `mock`)
+- `MAILCHANNELS_BASE_URL` (default MailChannels API base)
+- `AGENTMAIL_BASE_URL` (default AgentMail API base)
+- `MAILCHANNELS_WEBHOOK_VERIFY` (`true`/`false`, default: `false`)
+- `WEBHOOK_SHARED_SECRET` (optional webhook shared secret)
+
+## OAuth SSO setup (Google and GitHub)
+SSO remains self-hosted: this app only calls Google/GitHub OAuth endpoints directly and does not depend on a third-party auth broker.
+
+1. Configure OAuth apps in each provider.
+2. Set `AUTH_PUBLIC_URL` to the externally reachable URL for this app.
+3. Set provider credentials via env vars.
+4. Register these callback URLs with providers:
+   - Google: `https://<your-host>/auth/oauth/google/callback`
+   - GitHub: `https://<your-host>/auth/oauth/github/callback`
+
+For local development with Vite (`http://localhost:5173`), use:
+- `AUTH_PUBLIC_URL=http://localhost:5173`
+- callback URLs on `http://localhost:5173/auth/oauth/...` (Vite proxies `/auth` to the backend)
+
+## Migrations
+Generate migration SQL from schema:
+```bash
+pnpm drizzle-kit generate
+```
+
+Migrations are applied automatically at server startup via Drizzle migrator.
+
+## Quality gates
+Run all checks:
+```bash
+pnpm run typecheck
+pnpm run lint
+pnpm run test
+```
+
+# Appendix - Implementation Details
+
+## Stack
+- Frontend: Vite + React + TanStack Router
+- Backend: Hono + tRPC
+- Database: SQLite + Drizzle ORM + generated SQL migrations
+- Auth: Lucia session auth + optional Google/GitHub OAuth
+- Tests: Vitest + Testing Library
+
+## UX Standards
+The operator UI follows Nielsen heuristics and *The Design of Everyday Things* principles:
+- Visibility of system status: async actions show loading, success, and failure states.
+- Error prevention and recovery: destructive actions are confirmed; errors include retry paths.
+- Recognition over recall: forms include inline guidance and disable invalid actions early.
+- User control: users can clear inputs, dismiss status states, and retry failed queries.
+- Accessibility: focusable controls, semantic labels, and high-contrast status indicators.
+
 ## Recent refactors
 - 2026-02-16: consolidated tenant creation and selection UX:
   - Added `Create tenant...` to the workspace header tenant selector and wired it to a create-tenant modal flow.
@@ -205,67 +319,3 @@ tests/                # unit/integration/component tests
   - Added `tests/gateway-policy-enforcement.test.ts`
   - Covers required-header enforcement, per-minute limits, daily caps, and allow/deny domain matching
 
-## Agent Skill
-- `SKILLS.md` provides an OpenClaw agent skill for provisioning tenant/instance email access and using the gateway inbox/send APIs.
-
-## Local development
-1. Install dependencies:
-```bash
-pnpm install
-```
-2. Ensure native module builds are approved (required for `better-sqlite3`):
-```bash
-pnpm approve-builds
-```
-3. Start backend + frontend:
-```bash
-pnpm run dev
-```
-
-Frontend: http://localhost:5173
-Backend: http://localhost:3000
-
-## Environment variables
-Optional defaults are baked in for local development.
-
-- `PORT` (default: `3000`)
-- `DATABASE_URL` (default: `./data/clawmail.db`)
-- `AUTH_PUBLIC_URL` (optional public app URL used for OAuth callback URLs, e.g. `https://controlplane.example.com`)
-- `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` (optional, required to enable GitHub SSO)
-- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` (optional, required to enable Google SSO)
-- `APP_ENCRYPTION_KEY` (base64 preferred; dev fallback is used when missing)
-- `CONNECTOR_MODE` (`mock` or `live`, default: `mock`)
-- `MAILCHANNELS_BASE_URL` (default MailChannels API base)
-- `AGENTMAIL_BASE_URL` (default AgentMail API base)
-- `MAILCHANNELS_WEBHOOK_VERIFY` (`true`/`false`, default: `false`)
-- `WEBHOOK_SHARED_SECRET` (optional webhook shared secret)
-
-## OAuth SSO setup (Google and GitHub)
-SSO remains self-hosted: this app only calls Google/GitHub OAuth endpoints directly and does not depend on a third-party auth broker.
-
-1. Configure OAuth apps in each provider.
-2. Set `AUTH_PUBLIC_URL` to the externally reachable URL for this app.
-3. Set provider credentials via env vars.
-4. Register these callback URLs with providers:
-   - Google: `https://<your-host>/auth/oauth/google/callback`
-   - GitHub: `https://<your-host>/auth/oauth/github/callback`
-
-For local development with Vite (`http://localhost:5173`), use:
-- `AUTH_PUBLIC_URL=http://localhost:5173`
-- callback URLs on `http://localhost:5173/auth/oauth/...` (Vite proxies `/auth` to the backend)
-
-## Migrations
-Generate migration SQL from schema:
-```bash
-pnpm drizzle-kit generate
-```
-
-Migrations are applied automatically at server startup via Drizzle migrator.
-
-## Quality gates
-Run all checks:
-```bash
-pnpm run typecheck
-pnpm run lint
-pnpm run test
-```
