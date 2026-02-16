@@ -5,21 +5,32 @@ import {
   agentmailConnections,
   mailchannelsConnections,
 } from "../../drizzle/schema.js";
+import { LiveAgentMailConnector, LiveMailChannelsConnector } from "../connectors/live.js";
 import { createProviderConnectors } from "../connectors/factory.js";
 import type { AgentMailConnector, MailChannelsConnector } from "../connectors/types.js";
 import { decryptSecret, encryptSecret } from "../lib/crypto.js";
 import type { DatabaseClient } from "../lib/db.js";
+import { env } from "../lib/env.js";
 import { createId } from "../lib/id.js";
 import { safeJsonStringify } from "../lib/json-codec.js";
 import { withProviderErrorMapping } from "./provider-error-mapper.js";
 
-const connectors = createProviderConnectors();
+export function shouldUseLiveCredentialValidation(nodeEnv: string): boolean {
+  return nodeEnv !== "test";
+}
+
+const validationConnectors = shouldUseLiveCredentialValidation(env.NODE_ENV)
+  ? {
+    mailchannels: new LiveMailChannelsConnector(env.MAILCHANNELS_BASE_URL),
+    agentmail: new LiveAgentMailConnector(env.AGENTMAIL_BASE_URL),
+  }
+  : createProviderConnectors();
 
 export async function validateMailchannelsConnectionCredentials(
   input: {
     parentApiKey: string;
   },
-  connector: Pick<MailChannelsConnector, "validateCredentials"> = connectors.mailchannels,
+  connector: Pick<MailChannelsConnector, "validateCredentials"> = validationConnectors.mailchannels,
 ): Promise<void> {
   await withProviderErrorMapping(
     () =>
@@ -34,7 +45,7 @@ export async function validateAgentmailConnectionCredentials(
   input: {
     apiKey: string;
   },
-  connector: Pick<AgentMailConnector, "validateCredentials"> = connectors.agentmail,
+  connector: Pick<AgentMailConnector, "validateCredentials"> = validationConnectors.agentmail,
 ): Promise<void> {
   await withProviderErrorMapping(
     () =>
