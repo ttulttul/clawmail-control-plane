@@ -1,34 +1,27 @@
 # Refactoring Opportunities
 
-Generated: 2026-02-16
+Updated: 2026-02-16
 
-## Current Backlog
-1. [ ] Split tenant route orchestration from credential field UI state in `src/routes/tenants.tsx`.
-- Why: The route currently mixes tenant summary/onboarding concerns with provider status hydration, field edit/lock transitions, timeout lifecycle, and mutation success/error handling.
-- Proposed change: Extract `TenantOverviewPanel`, `FirstTenantCreateForm`, and `ProviderCredentialsPanel`; keep `src/routes/tenants.tsx` focused on query/mutation composition.
+1. [ ] Split `src/routes/risks.tsx` into focused presentation and state layers.
+- Why: The route is large (~824 lines) and currently mixes onboarding, provider credential UX, validation timing, and state-reset orchestration.
+- Proposed change: Extract `RiskOverviewPanel`, `ProviderConnectionsPanel`, and a `useCredentialFeedback` hook so route logic stays composition-focused.
 
-2. [ ] Introduce a typed credential-feedback state machine hook.
-- Why: `src/routes/tenants.tsx` handles repeated `validating -> success/error -> idle` transitions with multiple timeout refs and per-field conditionals.
-- Proposed change: Add `useCredentialFeedbackMachine` to centralize transition timing, cleanup, and per-field updates.
+2. [ ] Introduce a shared credential input component for provider forms.
+- Why: MailChannels and AgentMail sections in `src/routes/risks.tsx` repeat the same preview/edit/lock/feedback behavior with near-duplicate handlers.
+- Proposed change: Add a reusable `CredentialInputField` component under `src/components/` with typed props for tone, lock state, replacement mode, and helper copy.
 
-3. [ ] Consolidate tenant creation UI logic into a shared hook.
-- Why: Tenant creation now exists in both `src/components/tenant-selector.tsx` (modal) and `src/routes/tenants.tsx` (first-tenant inline form).
-- Proposed change: Add `src/hooks/use-create-tenant.ts` to centralize validation, mutation wiring, cache invalidation, and post-create selection behavior.
+3. [ ] Extract provider connection orchestration by provider domain.
+- Why: `server/services/provider-connections-service.ts` handles both MailChannels and AgentMail persistence + validation paths, increasing coupling and branch complexity.
+- Proposed change: Split into `mailchannels-connections-service.ts` and `agentmail-connections-service.ts`, keeping a thin façade where cross-provider coordination is required.
 
-4. [ ] Consolidate duplicated HTTP request/parsing logic in live provider connectors.
-- Why: `LiveMailChannelsConnector` and `LiveAgentMailConnector` in `server/connectors/live.ts` each implement similar `fetch -> text -> ensureOk -> parse` behavior.
-- Proposed change: Create a shared typed request helper used by both connectors to reduce divergence risk and simplify error handling updates.
+4. [ ] Move tRPC scope wiring to typed procedure factories.
+- Why: `server/trpc.ts` still relies on manual `readInputId` extraction and middleware wiring for risk and instance scoping.
+- Proposed change: Introduce Zod-backed helpers like `withRiskScope` and `withInstanceScope` that validate once and enrich context with verified scope IDs.
 
-5. [ ] Decompose `server/services/mailchannels-provisioning-service.ts` into operation-focused modules.
-- Why: Provisioning, limit updates, status toggles, key rotation, usage sync, and webhook validation are all in one file with repeated connection/sub-account lookup patterns.
-- Proposed change: Split into `mailchannels-provisioning/commands.ts`, `mailchannels-provisioning/key-lifecycle.ts`, and `mailchannels-provisioning/sync.ts` with shared lookup helpers.
+5. [ ] Consolidate MailChannels subaccount state transitions behind a repository helper.
+- Why: `server/services/mailchannels-provisioning-service.ts` repeats transaction patterns for activate/suspend/rotate/update flows.
+- Proposed change: Create a typed repository module for subaccount lifecycle writes to centralize invariants and reduce duplicate transaction code.
 
-6. [ ] Add reusable integration-test builders for tenant/provider scenarios.
-- Why: `tests/tenants-route.test.tsx`, `tests/tenant-boundary.test.ts`, and provider-service tests each recreate similar tenant/instance/provider setup boilerplate.
-- Proposed change: Add typed factories under `tests/helpers/fixtures.ts` for tenant, membership, provider connection, and instance records.
-
-## Completed In This Branch
-1. [x] Restored live provider credential validation behavior for `/tenants` in non-test runtime.
-2. [x] Moved ongoing tenant creation UX to the workspace header tenant selector (`Create tenant...` modal flow).
-3. [x] Removed duplicate tenant list rendering from `/tenants` and replaced it with selected-tenant summary.
-4. [x] Kept first-tenant onboarding inline on `/tenants` only when no tenants exist.
+6. [ ] Add shared test fixtures for risk/provider/integration setup.
+- Why: Integration tests in `tests/risks-route.test.tsx`, `tests/risk-boundary.test.ts`, and provider service tests repeat setup boilerplate for users, memberships, providers, and instances.
+- Proposed change: Add typed builders under `tests/helpers/fixtures.ts` for risk, membership, provider connections, and instance records.

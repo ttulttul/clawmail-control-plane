@@ -2,7 +2,7 @@
 
 # ClawMail Control Plane
 
-Self-hostable email control plane for OpenClaw fleets with tenant isolation,
+Self-hostable email control plane for OpenClaw fleets with risk isolation,
 per-instance blast-radius controls, centralized webhook ingestion, and
 gateway-mode API access.
 
@@ -16,27 +16,27 @@ visibility into what influenced agent behavior.
 
 This project exists to put a strict control plane between agents and email
 providers. Instead of handing raw provider keys to agents, operators provision
-tenant-scoped providers, instance-scoped credentials, and short-lived scoped
+risk-scoped providers, instance-scoped credentials, and short-lived scoped
 gateway tokens. Every send and webhook event is captured, policy-checked, and
 auditable. The result is practical oversight: agents can still use email, but
 within enforced limits and with clear operational accountability.
 
 ## Core Concepts
 - `User`: A human user who needs to control or view bot access to email
-  resources. **This is you!** Users have one assigned role for each `Tenant`.
+  resources. **This is you!** Users have one assigned role for each `Risk`.
   Many small organizations will have only one `User` who is the administrator
-  of a single `Tenant`, while larger organizations will have many users and
-  more complex tenant management delegation.
+  of a single `Risk`, while larger organizations will have many users and
+  more complex risk management delegation.
 
-- `Tenant`: The top-level email isolation boundary, controlled by one or more
+- `Risk`: The top-level email isolation boundary, controlled by one or more
   `User`'s. Provider credentials, instances, policies, inboxes, logs, and audit
-  events are all scoped to a `Tenant`.
+  events are all scoped to a `Risk`.
  
-- `User Membership`: A `User` belongs to one or more tenants with a role
+- `User Membership`: A `User` belongs to one or more risks with a role
   (`viewer`, `operator`, `admin`, `owner`) that controls what actions they can
   perform.
 
-- `Instance`: A logical OpenClaw agent identity inside a tenant. Instances have
+- `Instance`: A logical OpenClaw agent identity inside a risk. Instances have
   lifecycle state (`active`, `suspended`, `deprovisioned`) and mode (`gateway`
   or `direct`).
 
@@ -50,13 +50,13 @@ within enforced limits and with clear operational accountability.
 - `Token Scope`: Permissions attached to a gateway token (for example `send`,
   `read_inbox`, or `*`) that gate agent capabilities.
 
-- `MailChannels Connection`: Tenant-level provider credentials used to
+- `MailChannels Connection`: Risk-level provider credentials used to
   provision and operate sub-accounts for outbound sending.
 
 - `MailChannels Sub-account`: Instance-level sending account created under a
-  tenant’s MailChannels parent account, with its own limits and key lifecycle.
+  risk’s MailChannels parent account, with its own limits and key lifecycle.
 
-- `AgentMail Connection`: Tenant-level API key used to provision mailbox
+- `AgentMail Connection`: Risk-level API key used to provision mailbox
   resources for instances.
 
 - `AgentMail Pod`: A grouping/container in AgentMail where domains and inboxes
@@ -69,23 +69,23 @@ within enforced limits and with clear operational accountability.
   gateway inbox endpoints.
 
 - `Webhook Event`: Provider delivery/inbox events ingested into the control
-  plane, deduplicated, and attached to tenant/instance context when available.
+  plane, deduplicated, and attached to risk/instance context when available.
 
 - `Audit Log`: An immutable operator action trail (for example provisioning,
   token rotation, policy changes) used for oversight and incident review.
 
 ## Relationship Diagram
-![OpenClaw client, tenant, user, and service relationships](docs/images/openclaw-relationships.svg)
+![OpenClaw client, risk, user, and service relationships](docs/images/openclaw-relationships.svg)
 
-This diagram shows the relationships between OpenClaw clients, tenants, users,
+This diagram shows the relationships between OpenClaw clients, risks, users,
 and services.
 
 
 ## Quick Start
 ### Core concepts
-- `Tenant`: security and billing boundary for a team/workspace.
-- `Instance`: operational unit inside a tenant (holds provider links, policy state, and agent tokens).
-- `Provider connections`: tenant-level credentials for MailChannels and AgentMail.
+- `Risk`: security and billing boundary for a team/workspace.
+- `Instance`: operational unit inside a risk (holds provider links, policy state, and agent tokens).
+- `Provider connections`: risk-level credentials for MailChannels and AgentMail.
 - `Gateway token`: per-instance token your agents use with `/agent/*` endpoints.
 
 ### Run the app
@@ -97,15 +97,15 @@ pnpm run dev
 ```
 2. Open the UI at `http://localhost:5173`.
 
-### Create your first user and tenant
+### Create your first user and risk
 1. On the login screen, use **Register** with:
    - Email
    - Password (12+ characters)
-   - Tenant name
-2. After registration, open **Tenants** and confirm your tenant exists.
+   - Risk name
+2. After registration, open **Risks** and confirm your risk exists.
 
 ### Connect providers and create an instance
-1. In **Tenants**, save MailChannels and/or AgentMail credentials.
+1. In **Risks**, save MailChannels and/or AgentMail credentials.
    - For local smoke tests, default `CONNECTOR_MODE=mock` works without live credentials.
 2. Open **Instances**, create a new instance, then click **Rotate Gateway Token**.
 3. Copy the one-time token shown in the UI.
@@ -131,8 +131,8 @@ curl "http://localhost:3000/agent/events?limit=20" \\
 ```
 
 ## Implemented MVP capabilities
-- Tenant/user auth flows (`auth.*`)
-- Tenant management and provider connection storage (`tenants.*`)
+- Risk/user auth flows (`auth.*`)
+- Risk management and provider connection storage (`risks.*`)
 - Instance lifecycle + policy + token rotation (`instances.*`)
 - MailChannels provisioning controls (`mailchannels.*`)
   - sub-account provisioning
@@ -159,7 +159,7 @@ curl "http://localhost:3000/agent/events?limit=20" \\
 - In-process DB-backed scheduler for usage/webhook validation jobs
 - Operator UI pages
   - Dashboard
-  - Tenants
+  - Risks
   - Instances
   - Domains
   - Webhooks
@@ -255,39 +255,43 @@ The operator UI follows Nielsen heuristics and *The Design of Everyday Things* p
 - Accessibility: focusable controls, semantic labels, and high-contrast status indicators.
 
 ## Recent refactors
-- 2026-02-16: consolidated tenant creation and selection UX:
-  - Added `Create tenant...` to the workspace header tenant selector and wired it to a create-tenant modal flow.
-  - Removed duplicated tenant listing from the `/tenants` panel and replaced it with a selected-tenant summary (name + role tag).
-  - Kept inline tenant creation in `/tenants` only for first-time setup when no tenants exist.
-  - Added UI coverage in `tests/tenant-selector.test.tsx` and `tests/tenants-route.test.tsx`.
-- 2026-02-16: restored live provider credential validation behavior on `/tenants`:
+- 2026-02-16: renamed grouping terminology to risk terminology across the project:
+  - Replaced prior grouping labels with `Risk`/`risk` in routes, services, database schema naming, tests, docs, and migration metadata.
+  - Renamed grouping-focused files to risk equivalents (for example `src/routes/risks.tsx`, `server/services/risk-service.ts`, `server/routers/risks.ts`).
+  - Updated risk-related UI headings to use lobster emoji triplets (for example `Risk 🦞🦞🦞`) per OpenClaw terminology guidance.
+- 2026-02-16: consolidated risk creation and selection UX:
+  - Added `Create risk...` to the workspace header risk selector and wired it to a create-risk modal flow.
+  - Removed duplicated risk listing from the `/risks` panel and replaced it with a selected-risk summary (name + role tag).
+  - Kept inline risk creation in `/risks` only for first-time setup when no risks exist.
+  - Added UI coverage in `tests/risk-selector.test.tsx` and `tests/risks-route.test.tsx`.
+- 2026-02-16: restored live provider credential validation behavior on `/risks`:
   - Credential validation now always uses live MailChannels/AgentMail connectors in non-test environments, even when `CONNECTOR_MODE=mock` is used for provisioning flows.
-  - This prevents invalid provider keys from being accepted during tenant connection setup.
+  - This prevents invalid provider keys from being accepted during risk connection setup.
   - Added unit coverage for the environment-based validation connector selection in `tests/provider-connection-credentials.test.ts`.
 - 2026-02-15: moved credential rejection copy into the rejected input field:
   - During failed provider validation, the affected input now displays inline text such as `❌ Credential was rejected by MailChannels.` inside the input itself.
   - Removed separate rejection text rows below inputs to keep feedback scoped to the exact rejected credential field.
-- 2026-02-15: clarified inline credential rejection feedback on `/tenants`:
+- 2026-02-15: clarified inline credential rejection feedback on `/risks`:
   - Added explicit provider-specific rejection copy alongside the `❌` indicator (for example, “Credential was rejected by MailChannels.”).
   - Kept provider error payloads hidden from the UI to avoid exposing raw HTML/error-body output.
   - Continued using the extended failed-validation display window (3x success duration) before returning to editable state.
-- 2026-02-15: refined credential validation failure UX on `/tenants`:
+- 2026-02-15: refined credential validation failure UX on `/risks`:
   - Removed rendering of raw provider error bodies from credential fields (prevents provider HTML/error payload leakage in UI).
   - Kept failure feedback inline via `❌` input overlay only, without persistent `.error-message` blocks.
   - Extended failed-validation inline feedback duration to 3x the success duration so rejection is easier to notice.
-- 2026-02-15: added credential validation-first UX for tenant provider connections:
-  - Added provider credential validation in `server/services/provider-connections-service.ts`, enforced before tenant credential persistence.
+- 2026-02-15: added credential validation-first UX for risk provider connections:
+  - Added provider credential validation in `server/services/provider-connections-service.ts`, enforced before risk credential persistence.
   - Validation now performs direct provider API calls before persistence:
     - MailChannels parent key via sub-account listing (`GET /sub-account`)
     - AgentMail API key via pod listing (`GET /pods`)
   - Validation uses live provider connectors in non-test runtime so invalid real credentials fail validation even if provisioning mode is otherwise mocked.
-  - Reworked `src/routes/tenants.tsx` credential flows to show per-input validating shimmer states, inline success (`✅`) and failure (`❌`) overlays, and post-validation transitions to redacted previews or editable re-entry.
-  - Added route-level UI coverage for these validation transitions in `tests/tenants-route.test.tsx`.
-- 2026-02-15: improved tenant credential UX for configured provider connections:
-  - Added `tenants.providerStatus` query to return redacted credential previews (prefix + ellipses) for MailChannels and AgentMail.
-  - Updated `src/routes/tenants.tsx` to show grey read-only preview fields that switch to replacement mode when clicked.
+  - Reworked `src/routes/risks.tsx` credential flows to show per-input validating shimmer states, inline success (`✅`) and failure (`❌`) overlays, and post-validation transitions to redacted previews or editable re-entry.
+  - Added route-level UI coverage for these validation transitions in `tests/risks-route.test.tsx`.
+- 2026-02-15: improved risk credential UX for configured provider connections:
+  - Added `risks.providerStatus` query to return redacted credential previews (prefix + ellipses) for MailChannels and AgentMail.
+  - Updated `src/routes/risks.tsx` to show grey read-only preview fields that switch to replacement mode when clicked.
   - Added timed fade-out + auto-dismiss behavior for provider success pills and extra spacing below the success state.
-  - Added coverage in `tests/tenant-boundary.test.ts` and `tests/tenants-route.test.tsx`.
+  - Added coverage in `tests/risk-boundary.test.ts` and `tests/risks-route.test.tsx`.
 - 2026-02-15: split provider orchestration into focused services:
   - `server/services/provider-connections-service.ts`
   - `server/services/mailchannels-provisioning-service.ts`
@@ -299,9 +303,9 @@ The operator UI follows Nielsen heuristics and *The Design of Everyday Things* p
   - Added `server/lib/json-codec.ts` with `parseStringArray`, `parseRecord`, `safeJson`, and `safeJsonStringify`
   - Updated policy, token, send-log, audit-log, and domain record serialization/deserialization paths
   - Added unit coverage in `tests/json-codec.test.ts`
-- 2026-02-15: consolidated tenant and instance authorization checks into reusable tRPC procedures:
-  - Added `tenantMemberProcedure`, `tenantOperatorProcedure`, `tenantAdminProcedure`, `instanceScopedProcedure`, and `instanceOperatorProcedure` in `server/trpc.ts`
-  - Migrated tenant-scoped routers to composable wrappers and removed repeated inline auth checks
+- 2026-02-15: consolidated risk and instance authorization checks into reusable tRPC procedures:
+  - Added `riskMemberProcedure`, `riskOperatorProcedure`, `riskAdminProcedure`, `instanceScopedProcedure`, and `instanceOperatorProcedure` in `server/trpc.ts`
+  - Migrated risk-scoped routers to composable wrappers and removed repeated inline auth checks
   - Added integration coverage in `tests/trpc-authorization-procedures.test.ts`
 - 2026-02-15: formalized provider connector error mapping:
   - Added `server/connectors/provider-error.ts` and `server/services/provider-error-mapper.ts`
@@ -318,4 +322,3 @@ The operator UI follows Nielsen heuristics and *The Design of Everyday Things* p
 - 2026-02-15: added gateway policy enforcement integration coverage:
   - Added `tests/gateway-policy-enforcement.test.ts`
   - Covers required-header enforcement, per-minute limits, daily caps, and allow/deny domain matching
-

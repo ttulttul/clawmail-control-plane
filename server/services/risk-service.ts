@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
-import { tenantMemberships, tenants } from "../../drizzle/schema.js";
+import { riskMemberships, risks } from "../../drizzle/schema.js";
 import type { DatabaseClient } from "../lib/db.js";
 import { createId } from "../lib/id.js";
 
@@ -13,51 +13,51 @@ const roleRank = {
 } as const;
 
 type Role = keyof typeof roleRank;
-export type TenantRole = Role;
+export type RiskRole = Role;
 
-export async function createTenantForUser(
+export async function createRiskForUser(
   db: DatabaseClient,
   input: { userId: string; name: string; role?: Role },
-): Promise<{ tenantId: string }> {
-  const tenantId = createId();
+): Promise<{ riskId: string }> {
+  const riskId = createId();
   const membershipId = createId();
 
   db.transaction((tx) => {
     tx
-      .insert(tenants)
+      .insert(risks)
       .values({
-        id: tenantId,
+        id: riskId,
         name: input.name,
       })
       .run();
 
     tx
-      .insert(tenantMemberships)
+      .insert(riskMemberships)
       .values({
         id: membershipId,
-        tenantId,
+        riskId,
         userId: input.userId,
         role: input.role ?? "owner",
       })
       .run();
   });
 
-  return { tenantId };
+  return { riskId };
 }
 
-export async function listTenantsForUser(
+export async function listRisksForUser(
   db: DatabaseClient,
   userId: string,
 ): Promise<Array<{ id: string; name: string; role: Role }>> {
   const rows = await db
     .select({
-      id: tenants.id,
-      name: tenants.name,
-      role: tenantMemberships.role,
+      id: risks.id,
+      name: risks.name,
+      role: riskMemberships.role,
     })
-    .from(tenantMemberships)
-    .innerJoin(tenants, eq(tenantMemberships.tenantId, tenants.id))
-    .where(eq(tenantMemberships.userId, userId));
+    .from(riskMemberships)
+    .innerJoin(risks, eq(riskMemberships.riskId, risks.id))
+    .where(eq(riskMemberships.userId, userId));
 
   return rows.map((row) => ({
     id: row.id,
@@ -66,25 +66,25 @@ export async function listTenantsForUser(
   }));
 }
 
-export async function requireTenantMembership(
+export async function requireRiskMembership(
   db: DatabaseClient,
   input: {
     userId: string;
-    tenantId: string;
+    riskId: string;
     minimumRole?: Role;
   },
 ): Promise<{ role: Role }> {
-  const membership = await db.query.tenantMemberships.findFirst({
+  const membership = await db.query.riskMemberships.findFirst({
     where: and(
-      eq(tenantMemberships.userId, input.userId),
-      eq(tenantMemberships.tenantId, input.tenantId),
+      eq(riskMemberships.userId, input.userId),
+      eq(riskMemberships.riskId, input.riskId),
     ),
   });
 
   if (!membership) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
-      message: "You are not a member of this tenant.",
+      message: "You are not a member of this risk.",
     });
   }
 

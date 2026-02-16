@@ -5,7 +5,7 @@ import { RouterProvider } from "@tanstack/react-router";
 
 import { router } from "./router";
 import { trpc, trpcClient } from "./lib/trpc";
-import { ActiveTenantProvider } from "./hooks/use-active-tenant";
+import { ActiveRiskProvider } from "./hooks/use-active-risk";
 import "./styles.css";
 
 const queryClient = new QueryClient();
@@ -19,9 +19,9 @@ createRoot(rootElement).render(
   <StrictMode>
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <ActiveTenantProvider>
+        <ActiveRiskProvider>
           <RouterProvider router={router} />
-        </ActiveTenantProvider>
+        </ActiveRiskProvider>
       </QueryClientProvider>
     </trpc.Provider>
   </StrictMode>,

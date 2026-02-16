@@ -31,10 +31,10 @@ Build the self-hostable control plane described in `PRD.md`, prioritizing the MV
 3. Build tRPC context and base procedures:
    - `publicProcedure`
    - `protectedProcedure`
-   - role-scoped tenant guard helpers
+   - role-scoped risk guard helpers
 4. Implement base routers and Zod-validated inputs:
    - `auth.*`
-   - `tenants.*`
+   - `risks.*`
    - `instances.*`
    - `logs.*`
 
@@ -77,10 +77,10 @@ Build the self-hostable control plane described in `PRD.md`, prioritizing the MV
    - auto-remediation actions
 
 ### Phase 6: Frontend Operator UI
-1. Build authenticated shell and tenant selection.
+1. Build authenticated shell and risk selection.
 2. Implement pages:
    - Dashboard
-   - Tenants
+   - Risks
    - Instances (provisioning wizard + controls)
    - Domains
    - Webhooks
@@ -103,7 +103,7 @@ To accelerate delivery, work is split into these concurrent tracks where depende
 
 ## MVP Exit Criteria
 MVP is complete when all of the following are true:
-1. Operator can onboard tenant/provider credentials and provision an instance.
+1. Operator can onboard risk/provider credentials and provision an instance.
 2. Instance has isolated MailChannels sub-account + key + limit controls.
 3. Instance has AgentMail inbox mapping.
 4. Agent can send via `POST /agent/send` using scoped token.

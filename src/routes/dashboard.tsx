@@ -1,4 +1,4 @@
-import { useActiveTenant } from "../hooks/use-active-tenant";
+import { useActiveRisk } from "../hooks/use-active-risk";
 import { trpc } from "../lib/trpc";
 
 function formatTimestamp(value: string | number): string {
@@ -11,30 +11,30 @@ function formatTimestamp(value: string | number): string {
 }
 
 export function DashboardRoute() {
-  const { activeTenantId } = useActiveTenant();
+  const { activeRiskId } = useActiveRisk();
 
   const sends = trpc.logs.sends.useQuery(
     {
-      tenantId: activeTenantId ?? "",
+      riskId: activeRiskId ?? "",
       limit: 10,
     },
-    { enabled: Boolean(activeTenantId) },
+    { enabled: Boolean(activeRiskId) },
   );
 
   const events = trpc.logs.events.useQuery(
     {
-      tenantId: activeTenantId ?? "",
+      riskId: activeRiskId ?? "",
       limit: 10,
     },
-    { enabled: Boolean(activeTenantId) },
+    { enabled: Boolean(activeRiskId) },
   );
 
   const audit = trpc.logs.audit.useQuery(
     {
-      tenantId: activeTenantId ?? "",
+      riskId: activeRiskId ?? "",
       limit: 10,
     },
-    { enabled: Boolean(activeTenantId) },
+    { enabled: Boolean(activeRiskId) },
   );
 
   const isLoading = sends.isLoading || events.isLoading || audit.isLoading;
@@ -42,12 +42,12 @@ export function DashboardRoute() {
     (value): value is string => Boolean(value),
   );
 
-  if (!activeTenantId) {
+  if (!activeRiskId) {
     return (
       <section className="panel">
-        <h2>Create a tenant to begin</h2>
+        <h2>Create a Risk 🦞🦞🦞 to begin</h2>
         <p className="muted-copy">
-          Pick a tenant from the selector or create one from the Tenants page to
+          Pick a risk from the selector or create one from the Risks page to
           unlock dashboard metrics.
         </p>
       </section>
@@ -63,7 +63,7 @@ export function DashboardRoute() {
       <header className="overview-head">
         <h2>Overview</h2>
         <p className="muted-copy">
-          Monitor deliverability, webhook traffic, and tenant-level operations.
+          Monitor deliverability, webhook traffic, and risk-level operations.
         </p>
         <div className="button-row">
           <button

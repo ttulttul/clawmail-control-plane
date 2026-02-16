@@ -1,13 +1,13 @@
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 
 import { AuthGate } from "./auth-gate";
-import { TenantSelector } from "./tenant-selector";
-import { useActiveTenant } from "../hooks/use-active-tenant";
+import { RiskSelector } from "./risk-selector";
+import { useActiveRisk } from "../hooks/use-active-risk";
 import { trpc } from "../lib/trpc";
 
 const navLinks = [
   { to: "/", label: "Overview" },
-  { to: "/tenants", label: "Tenants" },
+  { to: "/risks", label: "Risks" },
   { to: "/instances", label: "Instances" },
   { to: "/domains", label: "Domains" },
   { to: "/webhooks", label: "Webhooks" },
@@ -26,16 +26,16 @@ function getUserLabel(email: string | null): string {
 export function AppLayout() {
   const path = useRouterState({ select: (state) => state.location.pathname });
   const session = trpc.auth.me.useQuery();
-  const tenants = trpc.tenants.list.useQuery(undefined, {
+  const risks = trpc.risks.list.useQuery(undefined, {
     enabled: Boolean(session.data),
   });
-  const { activeTenantId, setActiveTenantId } = useActiveTenant();
+  const { activeRiskId, setActiveRiskId } = useActiveRisk();
 
   const utils = trpc.useUtils();
   const logout = trpc.auth.logout.useMutation({
     onSuccess: async () => {
       await utils.auth.me.invalidate();
-      setActiveTenantId(null);
+      setActiveRiskId(null);
     },
   });
 
@@ -96,10 +96,10 @@ export function AppLayout() {
             <h1>{activePage}</h1>
           </div>
           <div className="workspace-actions">
-            <TenantSelector
-              tenants={tenants.data}
-              activeTenantId={activeTenantId}
-              setActiveTenantId={setActiveTenantId}
+            <RiskSelector
+              risks={risks.data}
+              activeRiskId={activeRiskId}
+              setActiveRiskId={setActiveRiskId}
             />
             <button
               className="button-secondary"

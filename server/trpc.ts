@@ -4,9 +4,9 @@ import { db } from "./lib/db.js";
 import type { RequestLogger } from "./lib/logger.js";
 import { requireInstance } from "./services/instance-service.js";
 import {
-  requireTenantMembership,
-  type TenantRole,
-} from "./services/tenant-service.js";
+  requireRiskMembership,
+  type RiskRole,
+} from "./services/risk-service.js";
 import type { AuthVariables } from "./types/hono.js";
 
 export interface TrpcContext {
@@ -39,7 +39,7 @@ export const createRouter = t.router;
 export const publicProcedure = t.procedure;
 export const protectedProcedure = t.procedure.use(authenticatedMiddleware);
 
-function readInputId(input: unknown, key: "tenantId" | "instanceId"): string {
+function readInputId(input: unknown, key: "riskId" | "instanceId"): string {
   if (typeof input !== "object" || input === null) {
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -58,7 +58,7 @@ function readInputId(input: unknown, key: "tenantId" | "instanceId"): string {
   return value;
 }
 
-function createTenantMembershipMiddleware(minimumRole?: TenantRole) {
+function createRiskMembershipMiddleware(minimumRole?: RiskRole) {
   return t.middleware(async ({ ctx, getRawInput, next }) => {
     const auth = ctx.auth;
     if (!auth) {
@@ -68,11 +68,11 @@ function createTenantMembershipMiddleware(minimumRole?: TenantRole) {
       });
     }
 
-    const tenantId = readInputId(await getRawInput(), "tenantId");
+    const riskId = readInputId(await getRawInput(), "riskId");
 
-    await requireTenantMembership(ctx.db, {
+    await requireRiskMembership(ctx.db, {
       userId: auth.user.id,
-      tenantId,
+      riskId,
       minimumRole,
     });
 
@@ -80,27 +80,27 @@ function createTenantMembershipMiddleware(minimumRole?: TenantRole) {
   });
 }
 
-const tenantMemberMiddleware = createTenantMembershipMiddleware();
-const tenantOperatorMiddleware = createTenantMembershipMiddleware("operator");
-const tenantAdminMiddleware = createTenantMembershipMiddleware("admin");
+const riskMemberMiddleware = createRiskMembershipMiddleware();
+const riskOperatorMiddleware = createRiskMembershipMiddleware("operator");
+const riskAdminMiddleware = createRiskMembershipMiddleware("admin");
 const instanceScopedMiddleware = t.middleware(async ({ ctx, getRawInput, next }) => {
   const rawInput = await getRawInput();
   await requireInstance(ctx.db, {
-    tenantId: readInputId(rawInput, "tenantId"),
+    riskId: readInputId(rawInput, "riskId"),
     instanceId: readInputId(rawInput, "instanceId"),
   });
 
   return next();
 });
 
-export const tenantMemberProcedure = protectedProcedure.use(tenantMemberMiddleware);
-export const tenantOperatorProcedure = protectedProcedure.use(
-  tenantOperatorMiddleware,
+export const riskMemberProcedure = protectedProcedure.use(riskMemberMiddleware);
+export const riskOperatorProcedure = protectedProcedure.use(
+  riskOperatorMiddleware,
 );
-export const tenantAdminProcedure = protectedProcedure.use(tenantAdminMiddleware);
-export const instanceScopedProcedure = tenantMemberProcedure.use(
+export const riskAdminProcedure = protectedProcedure.use(riskAdminMiddleware);
+export const instanceScopedProcedure = riskMemberProcedure.use(
   instanceScopedMiddleware,
 );
-export const instanceOperatorProcedure = tenantOperatorProcedure.use(
+export const instanceOperatorProcedure = riskOperatorProcedure.use(
   instanceScopedMiddleware,
 );

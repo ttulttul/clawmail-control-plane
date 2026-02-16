@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import { TenantsRoute } from "../src/routes/tenants";
+import { RisksRoute } from "../src/routes/risks";
 
 interface ProviderStatusData {
   mailchannelsAccountId: string | null;
@@ -10,13 +10,13 @@ interface ProviderStatusData {
 }
 
 interface MailchannelsMutationInput {
-  tenantId: string;
+  riskId: string;
   accountId?: string;
   parentApiKey?: string;
 }
 
 interface AgentmailMutationInput {
-  tenantId: string;
+  riskId: string;
   apiKey: string;
 }
 
@@ -27,7 +27,7 @@ interface MutationOptions<TInput> {
 }
 
 const mocks = vi.hoisted(() => ({
-  useActiveTenant: vi.fn(),
+  useActiveRisk: vi.fn(),
   useUtils: vi.fn(),
   listUseQuery: vi.fn(),
   providerStatusUseQuery: vi.fn(),
@@ -36,14 +36,14 @@ const mocks = vi.hoisted(() => ({
   connectAgentmailUseMutation: vi.fn(),
 }));
 
-vi.mock("../src/hooks/use-active-tenant", () => ({
-  useActiveTenant: mocks.useActiveTenant,
+vi.mock("../src/hooks/use-active-risk", () => ({
+  useActiveRisk: mocks.useActiveRisk,
 }));
 
 vi.mock("../src/lib/trpc", () => ({
   trpc: {
     useUtils: mocks.useUtils,
-    tenants: {
+    risks: {
       list: { useQuery: mocks.listUseQuery },
       providerStatus: { useQuery: mocks.providerStatusUseQuery },
       create: { useMutation: mocks.createUseMutation },
@@ -75,7 +75,7 @@ async function advanceTimerAndFlush(ms: number): Promise<void> {
   });
 }
 
-describe("TenantsRoute", () => {
+describe("RisksRoute", () => {
   let providerStatusData: ProviderStatusData;
   let mailchannelsOutcome: "success" | "error";
   let agentmailOutcome: "success" | "error";
@@ -102,14 +102,14 @@ describe("TenantsRoute", () => {
 
     const invalidate = vi.fn(() => Promise.resolve());
 
-    mocks.useActiveTenant.mockReturnValue({
-      activeTenantId: "tenant-1",
-      setActiveTenantId: vi.fn(),
+    mocks.useActiveRisk.mockReturnValue({
+      activeRiskId: "risk-1",
+      setActiveRiskId: vi.fn(),
     });
 
     mocks.useUtils.mockReturnValue({
       logs: { audit: { invalidate } },
-      tenants: {
+      risks: {
         list: { invalidate },
         providerStatus: { invalidate },
       },
@@ -118,7 +118,7 @@ describe("TenantsRoute", () => {
     mocks.listUseQuery.mockReturnValue({
       isLoading: false,
       error: null,
-      data: [{ id: "tenant-1", name: "Tenant One", role: "owner" }],
+      data: [{ id: "risk-1", name: "Risk One", role: "owner" }],
       refetch: vi.fn(),
     });
 
@@ -192,7 +192,7 @@ describe("TenantsRoute", () => {
   test("shows configured redacted previews and sends only edited MailChannels fields", () => {
     autoResolveMutations = false;
 
-    render(<TenantsRoute />);
+    render(<RisksRoute />);
 
     const accountInput = screen.getByLabelText("Account ID");
     const saveMailchannelsButton = screen.getByRole("button", {
@@ -217,7 +217,7 @@ describe("TenantsRoute", () => {
     fireEvent.click(saveMailchannelsButton);
 
     expect(mailchannelsMutate).toHaveBeenCalledWith({
-      tenantId: "tenant-1",
+      riskId: "risk-1",
       accountId: "mcacct_new",
       parentApiKey: undefined,
     });
@@ -231,7 +231,7 @@ describe("TenantsRoute", () => {
       agentmailApiKey: null,
     };
 
-    render(<TenantsRoute />);
+    render(<RisksRoute />);
 
     const apiKeyInput = screen.getByPlaceholderText("AgentMail API key");
 
@@ -259,7 +259,7 @@ describe("TenantsRoute", () => {
     vi.useFakeTimers();
     mailchannelsOutcome = "error";
 
-    render(<TenantsRoute />);
+    render(<RisksRoute />);
 
     const accountInput = screen.getByPlaceholderText("MailChannels account ID");
 
@@ -307,18 +307,18 @@ describe("TenantsRoute", () => {
     ).not.toHaveAttribute("readonly");
   });
 
-  test("shows selected tenant summary and hides tenant creation form when tenants exist", () => {
-    render(<TenantsRoute />);
+  test("shows selected risk summary and hides risk creation form when risks exist", () => {
+    render(<RisksRoute />);
 
-    expect(screen.getByText("Tenant One")).toBeInTheDocument();
+    expect(screen.getByText("Risk One")).toBeInTheDocument();
     expect(screen.getByText("owner")).toBeInTheDocument();
-    expect(screen.queryByLabelText("New tenant name")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("New risk name")).not.toBeInTheDocument();
   });
 
-  test("shows first-tenant creation form when no tenants exist", () => {
-    mocks.useActiveTenant.mockReturnValue({
-      activeTenantId: null,
-      setActiveTenantId: vi.fn(),
+  test("shows first-risk creation form when no risks exist", () => {
+    mocks.useActiveRisk.mockReturnValue({
+      activeRiskId: null,
+      setActiveRiskId: vi.fn(),
     });
     mocks.listUseQuery.mockReturnValue({
       isLoading: false,
@@ -327,11 +327,11 @@ describe("TenantsRoute", () => {
       refetch: vi.fn(),
     });
 
-    render(<TenantsRoute />);
+    render(<RisksRoute />);
 
     expect(
-      screen.getByText("No tenants yet. Create your first tenant to begin managing providers."),
+      screen.getByText("No risks yet. Create your first risk to begin managing providers."),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("New tenant name")).toBeInTheDocument();
+    expect(screen.getByLabelText("New risk name")).toBeInTheDocument();
   });
 });

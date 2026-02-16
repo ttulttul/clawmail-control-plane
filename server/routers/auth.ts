@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { lucia } from "../auth/lucia.js";
 import { createRouter, protectedProcedure, publicProcedure } from "../trpc.js";
 import { authenticateUser, registerUser } from "../services/auth-service.js";
-import { createTenantForUser } from "../services/tenant-service.js";
+import { createRiskForUser } from "../services/risk-service.js";
 import { users } from "../../drizzle/schema.js";
 
 export const authRouter = createRouter({
@@ -13,7 +13,7 @@ export const authRouter = createRouter({
       z.object({
         email: z.string().email(),
         password: z.string().min(12),
-        tenantName: z.string().min(2).optional(),
+        riskName: z.string().min(2).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -22,10 +22,10 @@ export const authRouter = createRouter({
         password: input.password,
       });
 
-      if (input.tenantName) {
-        await createTenantForUser(ctx.db, {
+      if (input.riskName) {
+        await createRiskForUser(ctx.db, {
           userId: user.userId,
-          name: input.tenantName,
+          name: input.riskName,
         });
       }
 

@@ -19,17 +19,17 @@ const connectors = createProviderConnectors();
 
 export async function ensurePod(
   db: DatabaseClient,
-  input: { tenantId: string; podName: string },
+  input: { riskId: string; podName: string },
 ): Promise<{ podId: string }> {
   const existing = await db.query.agentmailPods.findFirst({
-    where: eq(agentmailPods.tenantId, input.tenantId),
+    where: eq(agentmailPods.riskId, input.riskId),
   });
 
   if (existing) {
     return { podId: existing.podId };
   }
 
-  const connection = await requireAgentmailConnection(db, input.tenantId);
+  const connection = await requireAgentmailConnection(db, input.riskId);
   const pod = await withProviderErrorMapping(
     () =>
       connectors.agentmail.ensurePod({
@@ -41,23 +41,23 @@ export async function ensurePod(
 
   await db.insert(agentmailPods).values({
     id: createId(),
-    tenantId: input.tenantId,
+    riskId: input.riskId,
     podId: pod.podId,
   });
 
   await db
     .update(agentmailConnections)
     .set({ defaultPodId: pod.podId, updatedAt: Date.now() })
-    .where(eq(agentmailConnections.tenantId, input.tenantId));
+    .where(eq(agentmailConnections.riskId, input.riskId));
 
   return { podId: pod.podId };
 }
 
 export async function createAgentmailDomain(
   db: DatabaseClient,
-  input: { tenantId: string; podId: string; domain: string },
+  input: { riskId: string; podId: string; domain: string },
 ): Promise<{ domain: string; status: string; dnsRecords: string[] }> {
-  const connection = await requireAgentmailConnection(db, input.tenantId);
+  const connection = await requireAgentmailConnection(db, input.riskId);
   const created = await withProviderErrorMapping(
     () =>
       connectors.agentmail.createDomain({
@@ -70,7 +70,7 @@ export async function createAgentmailDomain(
 
   await db.insert(agentmailDomains).values({
     id: createId(),
-    tenantId: input.tenantId,
+    riskId: input.riskId,
     podId: input.podId,
     domain: created.domain,
     status: created.status,
@@ -83,7 +83,7 @@ export async function createAgentmailDomain(
 export async function createAgentmailInboxForInstance(
   db: DatabaseClient,
   input: {
-    tenantId: string;
+    riskId: string;
     instanceId: string;
     username: string;
     domain?: string;
@@ -92,7 +92,7 @@ export async function createAgentmailInboxForInstance(
   const instance = await db.query.openclawInstances.findFirst({
     where: and(
       eq(openclawInstances.id, input.instanceId),
-      eq(openclawInstances.tenantId, input.tenantId),
+      eq(openclawInstances.riskId, input.riskId),
     ),
   });
 
@@ -112,12 +112,12 @@ export async function createAgentmailInboxForInstance(
     };
   }
 
-  const connection = await requireAgentmailConnection(db, input.tenantId);
+  const connection = await requireAgentmailConnection(db, input.riskId);
   const podId =
     connection.defaultPodId ??
     (
       await ensurePod(db, {
-        tenantId: input.tenantId,
+        riskId: input.riskId,
         podName: `${instance.name}-pod`,
       })
     ).podId;
@@ -135,7 +135,7 @@ export async function createAgentmailInboxForInstance(
 
   await db.insert(agentmailInboxes).values({
     id: createId(),
-    tenantId: input.tenantId,
+    riskId: input.riskId,
     instanceId: input.instanceId,
     podId,
     inboxId: created.inboxId,
@@ -148,7 +148,7 @@ export async function createAgentmailInboxForInstance(
 
 export async function listDomainRecords(
   db: DatabaseClient,
-  tenantId: string,
+  riskId: string,
 ): Promise<
   Array<{
     id: string;
@@ -159,7 +159,7 @@ export async function listDomainRecords(
   }>
 > {
   const rows = await db.query.agentmailDomains.findMany({
-    where: eq(agentmailDomains.tenantId, tenantId),
+    where: eq(agentmailDomains.riskId, riskId),
     orderBy: [desc(agentmailDomains.createdAt)],
   });
 

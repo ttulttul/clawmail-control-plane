@@ -14,7 +14,7 @@ interface LoadedModules {
   hashPassword: (typeof import("../server/lib/password"))["hashPassword"];
   users: (typeof import("../drizzle/schema"))["users"];
   sendLog: (typeof import("../drizzle/schema"))["sendLog"];
-  createTenantForUser: (typeof import("../server/services/tenant-service"))["createTenantForUser"];
+  createRiskForUser: (typeof import("../server/services/risk-service"))["createRiskForUser"];
   createInstance: (typeof import("../server/services/instance-service"))["createInstance"];
   setInstancePolicy: (typeof import("../server/services/instance-service"))["setInstancePolicy"];
   saveMailchannelsConnection: (typeof import("../server/services/provider-connections-service"))["saveMailchannelsConnection"];
@@ -23,7 +23,7 @@ interface LoadedModules {
 }
 
 let modules: LoadedModules;
-let tenantId = "";
+let riskId = "";
 
 beforeAll(async () => {
   process.env.NODE_ENV = "test";
@@ -39,7 +39,7 @@ beforeAll(async () => {
     idModule,
     passwordModule,
     schemaModule,
-    tenantService,
+    riskService,
     instanceService,
     providerConnectionService,
     mailchannelsService,
@@ -50,7 +50,7 @@ beforeAll(async () => {
     import("../server/lib/id"),
     import("../server/lib/password"),
     import("../drizzle/schema"),
-    import("../server/services/tenant-service"),
+    import("../server/services/risk-service"),
     import("../server/services/instance-service"),
     import("../server/services/provider-connections-service"),
     import("../server/services/mailchannels-provisioning-service"),
@@ -65,7 +65,7 @@ beforeAll(async () => {
     hashPassword: passwordModule.hashPassword,
     users: schemaModule.users,
     sendLog: schemaModule.sendLog,
-    createTenantForUser: tenantService.createTenantForUser,
+    createRiskForUser: riskService.createRiskForUser,
     createInstance: instanceService.createInstance,
     setInstancePolicy: instanceService.setInstancePolicy,
     saveMailchannelsConnection: providerConnectionService.saveMailchannelsConnection,
@@ -81,14 +81,14 @@ beforeAll(async () => {
     passwordHash: modules.hashPassword("super-secure-password"),
   });
 
-  const tenant = await modules.createTenantForUser(modules.db, {
+  const risk = await modules.createRiskForUser(modules.db, {
     userId,
-    name: "Policy Tenant",
+    name: "Policy Risk",
   });
-  tenantId = tenant.tenantId;
+  riskId = risk.riskId;
 
   await modules.saveMailchannelsConnection(modules.db, {
-    tenantId,
+    riskId,
     mailchannelsAccountId: "policy-account",
     parentApiKey: "policy-parent-key",
   });
@@ -109,13 +109,13 @@ async function createProvisionedInstance(
   },
 ): Promise<string> {
   const instance = await modules.createInstance(modules.db, {
-    tenantId,
+    riskId,
     name: `instance-${randomUUID().slice(0, 6)}`,
     mode: "gateway",
   });
 
   await modules.provisionMailchannelsSubaccount(modules.db, {
-    tenantId,
+    riskId,
     instanceId: instance.instanceId,
     limit: 1000,
     suspended: false,
@@ -132,7 +132,7 @@ async function createProvisionedInstance(
 
 function sendInput(instanceId: string, to: string[], headers: Record<string, string>) {
   return {
-    tenantId,
+    riskId,
     instanceId,
     from: "sender@example.com",
     to,
@@ -210,7 +210,7 @@ describe("gateway policy enforcement", () => {
 
     await modules.db.insert(modules.sendLog).values({
       id: modules.createId(),
-      tenantId,
+      riskId,
       instanceId,
       requestId: randomUUID(),
       providerRequestId: randomUUID(),

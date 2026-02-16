@@ -12,7 +12,7 @@ interface LoadedModules {
   users: (typeof import("../drizzle/schema"))["users"];
   createId: (typeof import("../server/lib/id"))["createId"];
   hashPassword: (typeof import("../server/lib/password"))["hashPassword"];
-  createTenantForUser: (typeof import("../server/services/tenant-service"))["createTenantForUser"];
+  createRiskForUser: (typeof import("../server/services/risk-service"))["createRiskForUser"];
   createInstance: (typeof import("../server/services/instance-service"))["createInstance"];
   saveMailchannelsConnection: (typeof import("../server/services/provider-connections-service"))["saveMailchannelsConnection"];
   saveAgentmailConnection: (typeof import("../server/services/provider-connections-service"))["saveAgentmailConnection"];
@@ -41,7 +41,7 @@ beforeAll(async () => {
     schemaModule,
     idModule,
     passwordModule,
-    tenantService,
+    riskService,
     instanceService,
     providerConnectionService,
     mailchannelsProvisioningService,
@@ -52,7 +52,7 @@ beforeAll(async () => {
     import("../drizzle/schema"),
     import("../server/lib/id"),
     import("../server/lib/password"),
-    import("../server/services/tenant-service"),
+    import("../server/services/risk-service"),
     import("../server/services/instance-service"),
     import("../server/services/provider-connections-service"),
     import("../server/services/mailchannels-provisioning-service"),
@@ -66,7 +66,7 @@ beforeAll(async () => {
     users: schemaModule.users,
     createId: idModule.createId,
     hashPassword: passwordModule.hashPassword,
-    createTenantForUser: tenantService.createTenantForUser,
+    createRiskForUser: riskService.createRiskForUser,
     createInstance: instanceService.createInstance,
     saveMailchannelsConnection: providerConnectionService.saveMailchannelsConnection,
     saveAgentmailConnection: providerConnectionService.saveAgentmailConnection,
@@ -98,30 +98,30 @@ describe("provider service split", () => {
       passwordHash: modules.hashPassword("super-secure-password"),
     });
 
-    const { tenantId } = await modules.createTenantForUser(modules.db, {
+    const { riskId } = await modules.createRiskForUser(modules.db, {
       userId,
-      name: "Tenant One",
+      name: "Risk One",
     });
 
     const { instanceId } = await modules.createInstance(modules.db, {
-      tenantId,
+      riskId,
       name: "Outbound Worker",
       mode: "gateway",
     });
 
     await modules.saveMailchannelsConnection(modules.db, {
-      tenantId,
+      riskId,
       mailchannelsAccountId: "account_123",
       parentApiKey: "mailchannels_parent_key",
     });
 
     await modules.saveAgentmailConnection(modules.db, {
-      tenantId,
+      riskId,
       apiKey: "agentmail_api_key",
     });
 
     const provisioned = await modules.provisionMailchannelsSubaccount(modules.db, {
-      tenantId,
+      riskId,
       instanceId,
       limit: 1000,
       suspended: false,
@@ -129,7 +129,7 @@ describe("provider service split", () => {
     });
 
     const credentials = await modules.getInstanceProviderCredentials(modules.db, {
-      tenantId,
+      riskId,
       instanceId,
     });
 
@@ -140,31 +140,31 @@ describe("provider service split", () => {
     expect(credentials.encryptedKey).toBeTypeOf("string");
 
     const pod = await modules.ensurePod(modules.db, {
-      tenantId,
-      podName: "Tenant One Pod",
+      riskId,
+      podName: "Risk One Pod",
     });
 
     const createdDomain = await modules.createAgentmailDomain(modules.db, {
-      tenantId,
+      riskId,
       podId: pod.podId,
       domain: "example.test",
     });
 
     const inbox = await modules.createAgentmailInboxForInstance(modules.db, {
-      tenantId,
+      riskId,
       instanceId,
       username: "bot",
       domain: "example.test",
     });
 
-    const domains = await modules.listDomainRecords(modules.db, tenantId);
+    const domains = await modules.listDomainRecords(modules.db, riskId);
     const usage = await modules.syncSubaccountUsage(modules.db, {
-      tenantId,
+      riskId,
       instanceId,
     });
     const webhookStatus = await modules.validateMailchannelsWebhook(
       modules.db,
-      tenantId,
+      riskId,
     );
 
     expect(createdDomain.domain).toBe("example.test");

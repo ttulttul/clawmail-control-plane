@@ -21,13 +21,13 @@ describe("formatAuthErrorMessage", () => {
         minimum: 2,
         type: "string",
         message: "String must contain at least 2 character(s)",
-        path: ["tenantName"],
+        path: ["riskName"],
       },
     ]);
 
     expect(formatAuthErrorMessage(message)).toEqual([
       "password: String must contain at least 12 character(s)",
-      "tenantName: String must contain at least 2 character(s)",
+      "riskName: String must contain at least 2 character(s)",
     ]);
   });
 

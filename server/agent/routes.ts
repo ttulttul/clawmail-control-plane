@@ -51,7 +51,7 @@ agentRouter.post("/send", async (c) => {
     c.get("logger"),
     c.get("requestId"),
     {
-      tenantId: auth.tenantId,
+      riskId: auth.riskId,
       instanceId: auth.instanceId,
       ...parsed.data,
     },
@@ -70,7 +70,7 @@ agentRouter.get("/events", async (c) => {
   const limit = limitParam ? Number(limitParam) : 50;
 
   const events = await listGatewayEvents(db, {
-    tenantId: auth.tenantId,
+    riskId: auth.riskId,
     instanceId: auth.instanceId,
     limit: Number.isFinite(limit) ? Math.max(1, Math.min(limit, 200)) : 50,
   });
@@ -89,7 +89,7 @@ agentRouter.get("/inbox/threads", async (c) => {
   }
 
   const threads = await listInboxThreads(db, {
-    tenantId: auth.tenantId,
+    riskId: auth.riskId,
     instanceId: auth.instanceId,
   });
 
@@ -107,7 +107,7 @@ agentRouter.get("/inbox/messages/:id", async (c) => {
   }
 
   const message = await getInboxMessage(db, {
-    tenantId: auth.tenantId,
+    riskId: auth.riskId,
     instanceId: auth.instanceId,
     messageId: c.req.param("id"),
   });
@@ -131,7 +131,7 @@ agentRouter.post("/inbox/reply", async (c) => {
   }
 
   const reply = await replyInboxMessage(db, {
-    tenantId: auth.tenantId,
+    riskId: auth.riskId,
     instanceId: auth.instanceId,
     messageId: parsed.data.messageId,
     body: parsed.data.body,

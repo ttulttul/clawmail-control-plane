@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 
-import { useActiveTenant } from "../hooks/use-active-tenant";
+import { useActiveRisk } from "../hooks/use-active-risk";
 import { trpc } from "../lib/trpc";
 
 type NoticeTone = "info" | "success" | "error";
@@ -11,7 +11,7 @@ interface RouteNotice {
 }
 
 export function DomainsRoute() {
-  const { activeTenantId } = useActiveTenant();
+  const { activeRiskId } = useActiveRisk();
   const [podName, setPodName] = useState("default-pod");
   const [podId, setPodId] = useState("");
   const [domain, setDomain] = useState("");
@@ -20,8 +20,8 @@ export function DomainsRoute() {
   const utils = trpc.useUtils();
 
   const domains = trpc.agentmail.listDomains.useQuery(
-    { tenantId: activeTenantId ?? "" },
-    { enabled: Boolean(activeTenantId) },
+    { riskId: activeRiskId ?? "" },
+    { enabled: Boolean(activeRiskId) },
   );
 
   const ensurePod = trpc.agentmail.ensurePod.useMutation({
@@ -70,12 +70,12 @@ export function DomainsRoute() {
     return null;
   }, [domain, podId]);
 
-  if (!activeTenantId) {
+  if (!activeRiskId) {
     return (
       <section className="panel">
-        <h2>Select a tenant</h2>
+        <h2>Select a Risk 🦞🦞🦞</h2>
         <p className="muted-copy">
-          Choose a tenant to manage AgentMail pods and domains.
+          Choose a risk to manage AgentMail pods and domains.
         </p>
       </section>
     );
@@ -107,7 +107,7 @@ export function DomainsRoute() {
           />
           <button
             type="button"
-            onClick={() => ensurePod.mutate({ tenantId: activeTenantId, podName: podName.trim() })}
+            onClick={() => ensurePod.mutate({ riskId: activeRiskId, podName: podName.trim() })}
             disabled={ensurePod.isPending || podName.trim().length < 2}
           >
             {ensurePod.isPending ? "Ensuring Pod..." : "Ensure Pod"}
@@ -167,7 +167,7 @@ export function DomainsRoute() {
               type="button"
               onClick={() =>
                 createDomain.mutate({
-                  tenantId: activeTenantId,
+                  riskId: activeRiskId,
                   podId: podId.trim(),
                   domain: domain.trim(),
                 })

@@ -21,7 +21,7 @@ const agentmailEventSchema = z.object({
   id: z.string().min(1),
   event: z.string().min(1),
   instanceId: z.string().uuid().optional(),
-  tenantId: z.string().uuid().optional(),
+  riskId: z.string().uuid().optional(),
   payload: z.unknown().optional(),
 });
 
@@ -70,7 +70,7 @@ webhookRouter.post("/agentmail", async (c) => {
     provider: "agentmail",
     providerEventId: parsed.data.id,
     eventType: parsed.data.event,
-    tenantId: parsed.data.tenantId,
+    riskId: parsed.data.riskId,
     instanceId: parsed.data.instanceId,
     payload: parsed.data,
   });

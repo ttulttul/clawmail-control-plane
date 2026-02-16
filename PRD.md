@@ -12,7 +12,7 @@ If you hand a fleet of OpenClaw instances the **same** MailChannels API key (or 
 
 MailChannels Email API **sub-accounts** exist specifically to solve the “one parent account, many isolated senders” problem (with features like **per-sub-account limits**, key management, and **suspend/activate**). Sub-accounts have a hard requirement/constraint: they’re only available on higher-tier plans (MailChannels documents them as available on “100K and higher plans”). ([MailChannels API Documentation][1])
 
-AgentMail exists specifically to give agents inboxes via API, including **pods** (multi-tenant isolation) and programmatic inbox creation. ([AgentMail][2])
+AgentMail exists specifically to give agents inboxes via API, including **pods** (multi-risk isolation) and programmatic inbox creation. ([AgentMail][2])
 
 This design ties those together in a single self-hostable control plane.
 
@@ -102,14 +102,14 @@ Instead, each instance gets a **scoped token** to call ClawMail CP endpoints lik
 
 ### Entities
 
-* **Tenant (Organization)**: a customer (hosting-provider scenario) or internal team (enterprise scenario).
+* **Risk (Organization)**: a customer (hosting-provider scenario) or internal team (enterprise scenario).
 * **OpenClaw Instance**: one running agent environment.
 * **Outbound Identity (MailChannels)**: one sub-account per instance (or per group).
-* **Inbound Identity (AgentMail)**: one inbox per instance (under a tenant pod).
+* **Inbound Identity (AgentMail)**: one inbox per instance (under a risk pod).
 
 ### Default mapping
 
-* **Tenant** → 1 MailChannels parent connection + 1 AgentMail org connection
+* **Risk** → 1 MailChannels parent connection + 1 AgentMail org connection
 * **OpenClaw instance** → 1 MailChannels sub-account + 1 AgentMail inbox
 
 ---
@@ -154,7 +154,7 @@ When you retrieve sub-account API keys, MailChannels **does not return the full 
 
 ### Key modules
 
-1. **Tenant & Auth module**
+1. **Risk & Auth module**
 
    * Lucia session auth
    * RBAC: owner/admin/operator/viewer
@@ -177,7 +177,7 @@ When you retrieve sub-account API keys, MailChannels **does not return the full 
 
 4. **Policy engine**
 
-   * Per-instance and per-tenant constraints:
+   * Per-instance and per-risk constraints:
 
      * time-based rate limits (token bucket)
      * daily caps (local)
@@ -200,7 +200,7 @@ When you retrieve sub-account API keys, MailChannels **does not return the full 
 
 ## Provisioning flows
 
-### 1) Tenant onboarding wizard
+### 1) Risk onboarding wizard
 
 **Goal**: connect provider accounts once, verify prerequisites, and set defaults.
 
@@ -216,7 +216,7 @@ Steps:
 2. **Connect AgentMail**
 
    * Admin pastes AgentMail API key (stored encrypted in DB)
-   * Create (or select) a **Pod** for this tenant (recommended for isolation). ([AgentMail][2])
+   * Create (or select) a **Pod** for this risk (recommended for isolation). ([AgentMail][2])
 
 3. **Webhook setup**
 
@@ -247,7 +247,7 @@ Steps (happy path):
 
 4. Create AgentMail inbox
 
-   * In the tenant’s pod, create an inbox (optionally using a custom domain if configured).
+   * In the risk’s pod, create an inbox (optionally using a custom domain if configured).
    * If no domain configured, AgentMail uses `@agentmail.to` by default. ([AgentMail][9])
 
 5. Output instance configuration
@@ -292,7 +292,7 @@ Steps (happy path):
 
 1. **Time-based rate limiting**
 
-   * Token bucket: per-instance, per-tenant, and global caps.
+   * Token bucket: per-instance, per-risk, and global caps.
    * This is the “rate limit” most people actually want (per-minute/hour), and it complements MailChannels’ limit.
 
 2. **Policy enforcement**
@@ -361,20 +361,20 @@ Below is a high-signal schema outline (names are illustrative).
 
 * `users` (id, email, password_hash/SSO, created_at)
 * `sessions` (lucia)
-* `tenants` (id, name, created_at)
-* `tenant_memberships` (tenant_id, user_id, role)
+* `risks` (id, name, created_at)
+* `risk_memberships` (risk_id, user_id, role)
 
 ### Connections (encrypted secrets)
 
 * `mailchannels_connections`
 
-  * tenant_id
+  * risk_id
   * mailchannels_account_id (for Domain Lockdown + UI display) ([MailChannels API Documentation][6])
   * encrypted_parent_api_key
   * webhook_endpoint_config (json)
 * `agentmail_connections`
 
-  * tenant_id
+  * risk_id
   * encrypted_agentmail_api_key
   * default_pod_id
 
@@ -382,20 +382,20 @@ Below is a high-signal schema outline (names are illustrative).
 
 * `openclaw_instances`
 
-  * tenant_id
+  * risk_id
   * name
   * status (active/suspended/deprovisioned)
   * last_seen_at
 * `mailchannels_subaccounts`
 
-  * tenant_id
+  * risk_id
   * instance_id
   * handle
   * enabled (mirror)
   * limit (cached)
 * `mailchannels_subaccount_keys`
 
-  * tenant_id
+  * risk_id
   * subaccount_handle
   * provider_key_id
   * redacted_value (for display)
@@ -403,18 +403,18 @@ Below is a high-signal schema outline (names are illustrative).
   * status (active/retiring/revoked)
 * `agentmail_pods`
 
-  * tenant_id
+  * risk_id
   * pod_id
 * `agentmail_domains`
 
-  * tenant_id
+  * risk_id
   * pod_id
   * domain
   * status
   * dns_records_json
 * `agentmail_inboxes`
 
-  * tenant_id
+  * risk_id
   * instance_id
   * pod_id
   * inbox_id (or address)
@@ -452,7 +452,7 @@ Below is a high-signal schema outline (names are illustrative).
 * `audit_log`
 
   * actor_user_id
-  * tenant_id
+  * risk_id
   * action
   * target_type/target_id
   * diff_json
@@ -480,7 +480,7 @@ Below is a high-signal schema outline (names are illustrative).
 ### tRPC routers (typed app API)
 
 * `auth.*` (login/logout/me)
-* `tenants.*` (create tenant, invite member, roles)
+* `risks.*` (create risk, invite member, roles)
 * `instances.*` (create instance, rotate token, set policies)
 * `mailchannels.*`
 
@@ -492,7 +492,7 @@ Below is a high-signal schema outline (names are illustrative).
   * `syncUsage(instanceId)` (poll usage stats) ([MailChannels API Documentation][13])
 * `agentmail.*`
 
-  * `ensurePod(tenantId)`
+  * `ensurePod(riskId)`
   * `createDomain(podId, domain)`
   * `createInbox(instanceId, username, domain?)`
 * `logs.*` (list sends, events, audit)
@@ -520,9 +520,9 @@ Below is a high-signal schema outline (names are illustrative).
    * Suspended instances
    * Webhook health status
 
-2. **Tenants**
+2. **Risks**
 
-   * Create tenant
+   * Create risk
    * View connections
    * Membership & roles
 
@@ -630,13 +630,13 @@ Mitigations:
 * Provide simple HA guidance (run 2 replicas with shared SQLite on a volume is tricky; better is external DB—but that breaks “small footprint”)
 * Practical compromise: Gateway mode is recommended for security; Direct mode is fallback for availability-sensitive deployments.
 
-### Risk: tenants can see each other’s data (multi-tenant bug)
+### Risk: risks can see each other’s data (multi-risk bug)
 
 Mitigations:
 
-* Tenant scoping middleware at DB query layer
+* Risk scoping middleware at DB query layer
 * Strong type-safe procedures (tRPC + Zod)
-* Integration tests for “tenant boundary” invariants
+* Integration tests for “risk boundary” invariants
 
 ### Risk: webhook spoofing
 

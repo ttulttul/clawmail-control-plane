@@ -39,7 +39,7 @@
 - Leverage the end-to-end type pipeline the stack provides:
   - **Drizzle** schema → inferred row types (`typeof users.$inferSelect`, `typeof users.$inferInsert`). Never hand-write a type that duplicates what Drizzle already infers.
   - **tRPC** routers → inferred input/output types flow automatically to the client via `trpc.useQuery` / `trpc.useMutation`. Never duplicate request/response shapes on the client.
-  - **TanStack Router** → route params and search params should be typed via the route definition's `validateSearch` / `parseParams`. No bare `string` casts for route params.
+  - **TanStack Router** → route params and search params should be typed via the route definition's `validateSearch` / `parseParams`. No bare `string` risks for route params.
   - **Lucia** → session and user types are declared once in `lucia.d.ts` and flow through middleware and route context.
 
 - Runtime validation complements static types: Validate all external inputs at the boundary (tRPC procedure inputs, env vars, HTTP headers, form data) with Zod schemas, and let tRPC's `.input(z.object({...}))` handle parsing. Return strongly-typed domain objects from procedures; do not let untyped `Record<string, unknown>` leak into core logic.

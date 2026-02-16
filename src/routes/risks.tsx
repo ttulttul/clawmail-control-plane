@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { useActiveTenant } from "../hooks/use-active-tenant";
+import { useActiveRisk } from "../hooks/use-active-risk";
 import { trpc } from "../lib/trpc";
 
 type CredentialFieldId =
@@ -14,7 +14,7 @@ type CredentialFeedbackState = Record<CredentialFieldId, CredentialFeedbackTone>
 type CredentialPreviewOverrides = Partial<Record<CredentialFieldId, string | null>>;
 
 interface MailchannelsMutationInput {
-  tenantId: string;
+  riskId: string;
   accountId?: string;
   parentApiKey?: string;
 }
@@ -110,9 +110,9 @@ function getCredentialInputClass(
   return classNames.join(" ");
 }
 
-export function TenantsRoute() {
-  const { activeTenantId, setActiveTenantId } = useActiveTenant();
-  const [tenantName, setTenantName] = useState("");
+export function RisksRoute() {
+  const { activeRiskId, setActiveRiskId } = useActiveRisk();
+  const [riskName, setRiskName] = useState("");
   const [mailchannelsAccountId, setMailchannelsAccountId] = useState("");
   const [mailchannelsApiKey, setMailchannelsApiKey] = useState("");
   const [agentmailApiKey, setAgentmailApiKey] = useState("");
@@ -122,7 +122,7 @@ export function TenantsRoute() {
   const [mailchannelsAccountIdForceEntry, setMailchannelsAccountIdForceEntry] = useState(false);
   const [mailchannelsApiKeyForceEntry, setMailchannelsApiKeyForceEntry] = useState(false);
   const [agentmailApiKeyForceEntry, setAgentmailApiKeyForceEntry] = useState(false);
-  const [tenantSuccess, setTenantSuccess] = useState<string | null>(null);
+  const [riskSuccess, setRiskSuccess] = useState<string | null>(null);
   const [credentialFeedback, setCredentialFeedback] = useState<CredentialFeedbackState>(
     INITIAL_FEEDBACK_STATE,
   );
@@ -151,25 +151,25 @@ export function TenantsRoute() {
   };
 
   const utils = trpc.useUtils();
-  const tenants = trpc.tenants.list.useQuery();
-  const providerStatus = trpc.tenants.providerStatus.useQuery(
-    { tenantId: activeTenantId ?? "" },
-    { enabled: Boolean(activeTenantId) },
+  const risks = trpc.risks.list.useQuery();
+  const providerStatus = trpc.risks.providerStatus.useQuery(
+    { riskId: activeRiskId ?? "" },
+    { enabled: Boolean(activeRiskId) },
   );
 
-  const createTenant = trpc.tenants.create.useMutation({
+  const createRisk = trpc.risks.create.useMutation({
     onMutate: () => {
-      setTenantSuccess(null);
+      setRiskSuccess(null);
     },
     onSuccess: async (result, input) => {
-      await utils.tenants.list.invalidate();
-      setActiveTenantId(result.tenantId);
-      setTenantName("");
-      setTenantSuccess(`Tenant "${input.name.trim()}" created.`);
+      await utils.risks.list.invalidate();
+      setActiveRiskId(result.riskId);
+      setRiskName("");
+      setRiskSuccess(`Risk "${input.name.trim()}" created.`);
     },
   });
 
-  const connectMailchannels = trpc.tenants.connectMailchannels.useMutation({
+  const connectMailchannels = trpc.risks.connectMailchannels.useMutation({
     onMutate: (input) => {
       const fields = getMailchannelsValidationFields(input);
       clearMailchannelsSettleTimeout();
@@ -182,7 +182,7 @@ export function TenantsRoute() {
 
       await Promise.all([
         utils.logs.audit.invalidate(),
-        utils.tenants.providerStatus.invalidate({ tenantId: input.tenantId }),
+        utils.risks.providerStatus.invalidate({ riskId: input.riskId }),
       ]);
 
       setCredentialFeedback((current) =>
@@ -256,7 +256,7 @@ export function TenantsRoute() {
     },
   });
 
-  const connectAgentmail = trpc.tenants.connectAgentmail.useMutation({
+  const connectAgentmail = trpc.risks.connectAgentmail.useMutation({
     onMutate: () => {
       clearAgentmailSettleTimeout();
       setCredentialFeedback((current) => ({
@@ -267,7 +267,7 @@ export function TenantsRoute() {
     onSuccess: async (_, input) => {
       await Promise.all([
         utils.logs.audit.invalidate(),
-        utils.tenants.providerStatus.invalidate({ tenantId: input.tenantId }),
+        utils.risks.providerStatus.invalidate({ riskId: input.riskId }),
       ]);
 
       setCredentialFeedback((current) => ({
@@ -313,32 +313,32 @@ export function TenantsRoute() {
     },
   });
 
-  const createTenantDisabledReason = useMemo(() => {
-    if (tenantName.trim().length < 2) {
-      return "Enter a tenant name with at least 2 characters.";
+  const createRiskDisabledReason = useMemo(() => {
+    if (riskName.trim().length < 2) {
+      return "Enter a risk name with at least 2 characters.";
     }
 
     return null;
-  }, [tenantName]);
+  }, [riskName]);
 
   const providerDisabledReason = useMemo(() => {
-    if (!activeTenantId) {
-      return "Select a tenant first.";
+    if (!activeRiskId) {
+      return "Select a risk first.";
     }
 
     return null;
-  }, [activeTenantId]);
+  }, [activeRiskId]);
 
-  const selectedTenant = useMemo(() => {
-    if (!tenants.data || !activeTenantId) {
+  const selectedRisk = useMemo(() => {
+    if (!risks.data || !activeRiskId) {
       return null;
     }
 
-    return tenants.data.find((tenant) => tenant.id === activeTenantId) ?? null;
-  }, [tenants.data, activeTenantId]);
+    return risks.data.find((risk) => risk.id === activeRiskId) ?? null;
+  }, [risks.data, activeRiskId]);
 
-  const hasTenants = (tenants.data?.length ?? 0) > 0;
-  const showFirstTenantForm = !tenants.isLoading && !tenants.error && !hasTenants;
+  const hasRisks = (risks.data?.length ?? 0) > 0;
+  const showFirstRiskForm = !risks.isLoading && !risks.error && !hasRisks;
 
   useEffect(() => {
     return () => {
@@ -365,7 +365,7 @@ export function TenantsRoute() {
 
     setCredentialFeedback(INITIAL_FEEDBACK_STATE);
     setCredentialPreviewOverrides({});
-  }, [activeTenantId]);
+  }, [activeRiskId]);
 
   const mailchannelsAccountIdPreview =
     credentialPreviewOverrides.mailchannelsAccountId ??
@@ -517,85 +517,85 @@ export function TenantsRoute() {
     <section className="stack">
       <article className="panel">
         <div className="section-header">
-          <h2>Tenants</h2>
+          <h2>Risks 🦞🦞🦞</h2>
           <p className="muted-copy">
-            Tenants isolate users, credentials, and operational activity.
+            Risks isolate users, credentials, and operational activity.
           </p>
         </div>
 
-        {tenants.isLoading && (
+        {risks.isLoading && (
           <p className="status-pill info" role="status" aria-live="polite">
-            Loading tenants...
+            Loading risks...
           </p>
         )}
-        {tenants.error && (
+        {risks.error && (
           <div className="status-banner error" role="alert">
-            <p>Could not load tenants: {tenants.error.message}</p>
+            <p>Could not load risks: {risks.error.message}</p>
             <div className="status-actions">
-              <button type="button" className="button-secondary" onClick={() => tenants.refetch()}>
+              <button type="button" className="button-secondary" onClick={() => risks.refetch()}>
                 Retry
               </button>
             </div>
           </div>
         )}
-        {tenantSuccess && (
+        {riskSuccess && (
           <p className="status-pill success" role="status" aria-live="polite">
-            {tenantSuccess}
+            {riskSuccess}
           </p>
         )}
-        {showFirstTenantForm && createTenant.error && (
+        {showFirstRiskForm && createRisk.error && (
           <p className="status-pill error" role="alert">
-            {createTenant.error.message}
+            {createRisk.error.message}
           </p>
         )}
 
-        {hasTenants && (
-          <div className="tenant-summary">
-            {selectedTenant ? (
-              <div className="tenant-summary-row">
-                <span className="tenant-summary-name">{selectedTenant.name}</span>
-                <span className="tag">{selectedTenant.role}</span>
+        {hasRisks && (
+          <div className="risk-summary">
+            {selectedRisk ? (
+              <div className="risk-summary-row">
+                <span className="risk-summary-name">{selectedRisk.name}</span>
+                <span className="tag">{selectedRisk.role}</span>
               </div>
             ) : (
               <p className="hint-message">
-                Select a tenant from the header tenant menu to continue.
+                Select a risk from the header risk menu to continue.
               </p>
             )}
           </div>
         )}
 
-        {showFirstTenantForm && (
+        {showFirstRiskForm && (
           <div className="form-grid">
             <p className="hint-message">
-              No tenants yet. Create your first tenant to begin managing providers.
+              No risks yet. Create your first risk to begin managing providers.
             </p>
             <label>
-              New tenant name
+              New risk name
               <input
-                value={tenantName}
+                value={riskName}
                 onChange={(event) => {
-                  setTenantSuccess(null);
-                  setTenantName(event.target.value);
+                  setRiskSuccess(null);
+                  setRiskName(event.target.value);
                 }}
                 placeholder="acme-mail"
               />
             </label>
-            {createTenantDisabledReason && (
-              <p className="hint-message">{createTenantDisabledReason}</p>
+            {createRiskDisabledReason && (
+              <p className="hint-message">{createRiskDisabledReason}</p>
             )}
             <div className="button-row">
               <button
                 type="button"
-                onClick={() => createTenant.mutate({ name: tenantName.trim() })}
-                disabled={createTenant.isPending || createTenantDisabledReason !== null}
+                onClick={() => createRisk.mutate({ name: riskName.trim() })}
+                disabled={createRisk.isPending || createRiskDisabledReason !== null}
               >
-                {createTenant.isPending ? "Creating Tenant..." : "Create Tenant"}
+                {createRisk.isPending ? "Creating Risk..." : "Create Risk"}
               </button>
               <button
                 type="button"
                 className="button-secondary"
-                onClick={() => setTenantName("")}
-                disabled={createTenant.isPending || tenantName.length === 0}
+                onClick={() => setRiskName("")}
+                disabled={createRisk.isPending || riskName.length === 0}
               >
                 Clear
               </button>
@@ -608,7 +608,7 @@ export function TenantsRoute() {
         <div className="section-header">
           <h2>Provider Connections</h2>
           <p className="muted-copy">
-            Store provider credentials for the selected tenant only.
+            Store provider credentials for the selected risk only.
           </p>
         </div>
 
@@ -723,7 +723,7 @@ export function TenantsRoute() {
                 type="button"
                 onClick={() =>
                   connectMailchannels.mutate({
-                    tenantId: activeTenantId ?? "",
+                    riskId: activeRiskId ?? "",
                     accountId: mailchannelsNeedsAccountIdInput
                       ? mailchannelsAccountId.trim()
                       : undefined,
@@ -800,7 +800,7 @@ export function TenantsRoute() {
                 type="button"
                 onClick={() =>
                   connectAgentmail.mutate({
-                    tenantId: activeTenantId ?? "",
+                    riskId: activeRiskId ?? "",
                     apiKey: agentmailApiKey.trim(),
                   })
                 }

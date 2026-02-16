@@ -8,7 +8,7 @@ export const runSyncUsageJob: JobHandler = async ({ db, logger }) => {
   for (const subaccount of subaccounts) {
     try {
       await syncSubaccountUsage(db, {
-        tenantId: subaccount.tenantId,
+        riskId: subaccount.riskId,
         instanceId: subaccount.instanceId,
       });
     } catch (error) {

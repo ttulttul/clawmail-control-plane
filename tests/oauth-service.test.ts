@@ -53,8 +53,8 @@ describe("oauth-service", () => {
     expect(modules.normalizePostAuthPath(undefined)).toBe("/");
     expect(modules.normalizePostAuthPath("https://example.com")).toBe("/");
     expect(modules.normalizePostAuthPath("//evil.example")).toBe("/");
-    expect(modules.normalizePostAuthPath("/tenants?tab=settings")).toBe(
-      "/tenants?tab=settings",
+    expect(modules.normalizePostAuthPath("/risks?tab=settings")).toBe(
+      "/risks?tab=settings",
     );
   });
 
