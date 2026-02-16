@@ -135,6 +135,10 @@ tests/                # unit/integration/component tests
 ```
 
 ## Recent refactors
+- 2026-02-16: restored live provider credential validation behavior on `/tenants`:
+  - Credential validation now always uses live MailChannels/AgentMail connectors in non-test environments, even when `CONNECTOR_MODE=mock` is used for provisioning flows.
+  - This prevents invalid provider keys from being accepted during tenant connection setup.
+  - Added unit coverage for the environment-based validation connector selection in `tests/provider-connection-credentials.test.ts`.
 - 2026-02-15: moved credential rejection copy into the rejected input field:
   - During failed provider validation, the affected input now displays inline text such as `❌ Credential was rejected by MailChannels.` inside the input itself.
   - Removed separate rejection text rows below inputs to keep feedback scoped to the exact rejected credential field.

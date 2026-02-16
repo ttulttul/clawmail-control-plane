@@ -4,11 +4,18 @@ import { describe, expect, test, vi } from "vitest";
 
 import { ProviderHttpError } from "../server/connectors/provider-error";
 import {
+  shouldUseLiveCredentialValidation,
   validateAgentmailConnectionCredentials,
   validateMailchannelsConnectionCredentials,
 } from "../server/services/provider-connections-service";
 
 describe("provider connection credential validation", () => {
+  test("uses live provider validation outside test environments", () => {
+    expect(shouldUseLiveCredentialValidation("development")).toBe(true);
+    expect(shouldUseLiveCredentialValidation("production")).toBe(true);
+    expect(shouldUseLiveCredentialValidation("test")).toBe(false);
+  });
+
   test("validates MailChannels credentials before saving a connection", async () => {
     const validateCredentials = vi.fn().mockResolvedValue(undefined);
 
